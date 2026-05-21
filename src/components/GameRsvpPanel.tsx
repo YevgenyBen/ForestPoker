@@ -21,7 +21,7 @@ export function GameRsvpPanel({
   async function pick(status: Rsvp) {
     await run(async () => {
       const r = await setGameRsvp(gameId, status);
-      return r.ok;
+      return "ok" in r;
     });
   }
 

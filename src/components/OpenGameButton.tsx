@@ -13,7 +13,7 @@ export function OpenGameButton({ gameId }: { gameId: string }) {
   async function handle() {
     await run(async () => {
       const r = await openGame(gameId);
-      return r.ok;
+      return "ok" in r;
     });
   }
 
