@@ -47,8 +47,8 @@ function BuyOutIcon({ className }: { className?: string }) {
   return (
     <svg className={className} {...svgProps}>
       <PokerTableShape />
-      <path d="M10 9V3.75" />
-      <path d="M8 5.75l2-2 2 2" />
+      <path d="M10 7.75V2.75" />
+      <path d="M8 4.25l2-2 2 2" />
     </svg>
   );
 }
