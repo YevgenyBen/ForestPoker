@@ -21,7 +21,9 @@ import {
   computeNetByUser,
   minimizeTransfers,
   netSum,
+  type Transfer,
 } from "@/lib/settlement";
+import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { formatDateDdMmYyyy, parseScheduledCalendarDate } from "@/lib/formatDate";
 
@@ -198,6 +200,12 @@ export async function addLedgerEntry(input: {
 export async function closeGame(gameId: string) {
   const { user, locale } = await requireUser();
 
+  let notifyPayload: {
+    title: string;
+    transfers: Transfer[];
+    closerUsername: string;
+  } | null = null;
+
   try {
     await db.transaction(async (tx) => {
       const [g] = await tx
@@ -253,6 +261,12 @@ export async function closeGame(gameId: string) {
           }))
         );
       }
+
+      notifyPayload = {
+        title: g.title,
+        transfers,
+        closerUsername: user.username,
+      };
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
@@ -261,6 +275,14 @@ export async function closeGame(gameId: string) {
     if (msg === "not_member") return { error: "not_member" as const };
     safeConsoleError("games:closeGame", e);
     throw e;
+  }
+
+  if (notifyPayload) {
+    try {
+      await notifyGameSettlements(gameId, notifyPayload);
+    } catch (e) {
+      safeConsoleError("games:whatsappNotify", e);
+    }
   }
 
   revalidatePath(`/${locale}/games`);
