@@ -10,6 +10,10 @@ export type SettlementMessageInput = {
   closerName?: string | null;
 };
 
+/** Keep mixed Hebrew/Latin lines in correct visual order in WhatsApp (BiDi). */
+const LRI = "\u2066";
+const PDI = "\u2069";
+
 const money = (n: number) =>
   new Intl.NumberFormat("he-IL", {
     style: "currency",
@@ -24,12 +28,14 @@ export function formatSettlementMessage(input: SettlementMessageInput): string {
     lines.push("אין התחשבנות — כולם מאוזנים");
   } else {
     for (const t of input.transfers) {
-      lines.push(`${t.fromName} → ${t.toName}: ${money(t.amountNis)}`);
+      lines.push(
+        `${LRI}${t.fromName} → ${t.toName}: ${money(t.amountNis)}${PDI}`
+      );
     }
   }
 
   if (input.closerName) {
-    lines.push("", `נסגר על ידי: ${input.closerName}`);
+    lines.push("", `נסגר על ידי: ${LRI}${input.closerName}${PDI}`);
   }
 
   return lines.join("\n");
