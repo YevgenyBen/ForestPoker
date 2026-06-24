@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   GoogleAuthProvider,
@@ -17,8 +18,11 @@ import { getFirebaseAuth } from "@/lib/firebase/client";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { isIdeEmbeddedPreview } from "@/lib/auth/oauthEnvironment";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { Spinner } from "@/components/Spinner";
 
 const GOOGLE_OAUTH_FLAG = "fp_google_oauth_pending";
+
+type PendingAction = "google" | "email" | "session" | null;
 
 function authErrorToMessage(
   e: unknown,
@@ -97,18 +101,25 @@ function signInFlowErrorMessage(e: unknown, t: (key: string) => string): string 
 
 export function LoginForm() {
   const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [navigatingAway, setNavigatingAway] = useState(false);
   const [embeddedPreview, setEmbeddedPreview] = useState(false);
+  const isBusy = pendingAction !== null || navigatingAway;
   const establishingRef = useRef(false);
 
   useEffect(() => {
     setEmbeddedPreview(isIdeEmbeddedPreview());
+  }, []);
+
+  const beginNavigation = useCallback(() => {
+    flushSync(() => setNavigatingAway(true));
   }, []);
 
   const establishSession = useCallback(async () => {
@@ -138,14 +149,16 @@ export function LoginForm() {
       hasSession?: boolean;
     };
     if (me.user) {
+      beginNavigation();
       router.push(`/${locale}/games`);
     } else if (me.hasSession) {
+      beginNavigation();
       router.push(`/${locale}/onboarding`);
     } else {
       throw new Error("session_not_persisted");
     }
     router.refresh();
-  }, [locale, router]);
+  }, [beginNavigation, locale, router]);
 
   /** After OAuth redirect or restored Firebase user: mint __session if missing. */
   const syncServerSessionIfNeeded = useCallback(async () => {
@@ -157,7 +170,7 @@ export function LoginForm() {
 
       if (establishingRef.current) return;
       establishingRef.current = true;
-      setLoading(true);
+      flushSync(() => setPendingAction("session"));
 
       const me = (await fetch("/api/me", { credentials: "include" }).then((r) =>
         r.json()
@@ -165,6 +178,7 @@ export function LoginForm() {
 
       if (me.user || me.hasSession) {
         sessionStorage.removeItem(GOOGLE_OAUTH_FLAG);
+        beginNavigation();
         if (me.user) {
           router.push(`/${locale}/games`);
         } else {
@@ -181,11 +195,11 @@ export function LoginForm() {
       safeConsoleError("LoginForm:syncServerSessionIfNeeded", e);
       const msg = e instanceof Error ? e.message : "";
       setError(sessionEstablishErrorMessage(msg, t));
+      setPendingAction(null);
     } finally {
       establishingRef.current = false;
-      setLoading(false);
     }
-  }, [establishSession, locale, router, t]);
+  }, [beginNavigation, establishSession, locale, router, t]);
 
   /**
    * Complete redirect OAuth, then sync server session. After `signInWithRedirect`, Firebase may apply
@@ -218,8 +232,10 @@ export function LoginForm() {
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
+    flushSync(() => {
+      setError(null);
+      setPendingAction("email");
+    });
     try {
       const auth = getFirebaseAuth();
       if (mode === "register") {
@@ -231,15 +247,16 @@ export function LoginForm() {
     } catch (e) {
       safeConsoleError("LoginForm:emailSubmit", e);
       setError(signInFlowErrorMessage(e, t));
-    } finally {
-      setLoading(false);
+      setPendingAction(null);
     }
   }
 
   async function handleGoogle() {
     if (embeddedPreview) return;
-    setError(null);
-    setLoading(true);
+    flushSync(() => {
+      setError(null);
+      setPendingAction("google");
+    });
     try {
       const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
@@ -275,10 +292,14 @@ export function LoginForm() {
       safeConsoleError("LoginForm:googleSignIn", e);
       sessionStorage.removeItem(GOOGLE_OAUTH_FLAG);
       setError(signInFlowErrorMessage(e, t));
-    } finally {
-      setLoading(false);
+      setPendingAction(null);
     }
   }
+
+  const googleLoading =
+    navigatingAway || pendingAction === "google" || pendingAction === "session";
+  const emailLoading =
+    navigatingAway || pendingAction === "email" || pendingAction === "session";
 
   async function handleForgot() {
     if (!email) {
@@ -325,11 +346,13 @@ export function LoginForm() {
       <button
         type="button"
         onClick={handleGoogle}
-        disabled={loading || embeddedPreview}
+        disabled={isBusy || embeddedPreview}
+        aria-busy={googleLoading}
         title={embeddedPreview ? t("embeddedPreviewBody") : undefined}
-        className="flex w-full min-h-11 items-center justify-center rounded-xl border border-[var(--fp-wood-mid)] bg-white px-4 font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--fp-wood-mid)] bg-white px-4 font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {t("google")}
+        {googleLoading && <Spinner className="size-4 shrink-0" />}
+        {googleLoading ? tCommon("loading") : t("google")}
       </button>
 
       <div className="relative text-center text-xs text-[var(--fp-secondary)]">
@@ -337,7 +360,7 @@ export function LoginForm() {
         <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-[var(--fp-parchment)]" />
       </div>
 
-      <form onSubmit={handleEmailSubmit} className="space-y-4">
+      <form onSubmit={handleEmailSubmit} className="space-y-4" aria-busy={isBusy}>
         <div>
           <label className="mb-1 block text-sm font-medium text-[var(--fp-ink)]">{t("email")}</label>
           <input
@@ -346,6 +369,7 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isBusy}
             className="fp-field w-full rounded-lg border border-[var(--fp-wood-mid)]/40 px-3 py-2"
             dir="ltr"
           />
@@ -359,6 +383,7 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
+            disabled={isBusy}
             className="fp-field w-full rounded-lg border border-[var(--fp-wood-mid)]/40 px-3 py-2"
             dir="ltr"
           />
@@ -373,10 +398,16 @@ export function LoginForm() {
         )}
         <button
           type="submit"
-          disabled={loading}
-          className="w-full min-h-11 rounded-xl bg-[var(--fp-moss)] font-semibold text-white"
+          disabled={isBusy}
+          aria-busy={emailLoading}
+          className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--fp-moss)] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {mode === "register" ? t("signUp") : t("signIn")}
+          {emailLoading && <Spinner className="size-4 shrink-0 text-white" />}
+          {emailLoading
+            ? tCommon("loading")
+            : mode === "register"
+              ? t("signUp")
+              : t("signIn")}
         </button>
       </form>
 
@@ -384,7 +415,8 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setMode(mode === "signin" ? "register" : "signin")}
-          className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
+          disabled={isBusy}
+          className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {mode === "signin" ? t("needAccount") : t("haveAccount")}
         </button>
@@ -392,7 +424,8 @@ export function LoginForm() {
           <button
             type="button"
             onClick={handleForgot}
-            className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
+            disabled={isBusy}
+            className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("forgot")}
           </button>
