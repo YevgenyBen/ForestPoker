@@ -78,13 +78,35 @@ jobs:
 
       - name: Create App Hosting rollout
         # Git-connected backend: roll out the commit just pushed to main (no source upload).
-        # One rollout per workflow — retries while a build is queued cause HTTP 400.
+        # Retry only HTTP 409 (build ID already exists — race with a cancelled run or same-day
+        # counter). Do not retry HTTP 400 (build queue busy); that loop never clears.
         run: |
           set -euo pipefail
-          echo "Creating rollout for ${GITHUB_SHA}"
-          npx --yes firebase-tools@15.22.3 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
-            --git-commit "${GITHUB_SHA}" \
-            --force
+          max_attempts=5
+          delay=30
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Rollout attempt ${attempt}/${max_attempts} for ${GITHUB_SHA}"
+            if output=$(npx --yes firebase-tools@15.22.3 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
+              --git-commit "${GITHUB_SHA}" \
+              --force 2>&1); then
+              echo "$output"
+              exit 0
+            fi
+            echo "$output"
+            if echo "$output" | grep -qE "HTTP Error: 409"; then
+              if [ "$attempt" -eq "$max_attempts" ]; then
+                echo "::error::App Hosting rollout failed after ${max_attempts} attempts (409 build ID conflict)" >&2
+                exit 1
+              fi
+              echo "Build ID conflict (409); waiting ${delay}s so the CLI picks the next ID..."
+              sleep "$delay"
+              delay=$((delay * 2))
+              attempt=$((attempt + 1))
+            else
+              exit 1
+            fi
+          done
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-ci-sa.json
 
