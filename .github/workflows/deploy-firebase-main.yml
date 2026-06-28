@@ -73,6 +73,7 @@ jobs:
             exit 1
           fi
           printf '%s' "${FIREBASE_SERVICE_ACCOUNT_JSON}" > "${GITHUB_WORKSPACE}/firebase-ci-sa.json"
+          echo "CI deploy service account: $(jq -r .client_email "${GITHUB_WORKSPACE}/firebase-ci-sa.json")"
 
       - name: Create App Hosting rollout
         # Git-connected backend: roll out the commit just pushed to main (no source upload).
