@@ -36,7 +36,7 @@ permissions:
 
 concurrency:
   group: firebase-deploy-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -78,7 +78,26 @@ jobs:
 
       - name: Deploy to Firebase App Hosting
         # --force skips interactive “deploy local source?”; -P selects Firebase project.
-        run: npx --yes firebase-tools@latest -P forest-poker-web-a8k3 deploy --only apphosting,hosting --non-interactive --force
+        # Retry on transient GCP IAM 409 (concurrent setIamPolicy / ETag mismatch).
+        run: |
+          set -euo pipefail
+          max_attempts=5
+          delay=20
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Deploy attempt ${attempt}/${max_attempts}"
+            if npx --yes firebase-tools@latest -P forest-poker-web-a8k3 deploy --only apphosting,hosting --non-interactive --force; then
+              exit 0
+            fi
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "::error::Firebase deploy failed after ${max_attempts} attempts" >&2
+              exit 1
+            fi
+            echo "Deploy failed (often IAM 409); retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$((delay * 2))
+            attempt=$((attempt + 1))
+          done
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-ci-sa.json
 
