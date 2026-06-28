@@ -78,27 +78,13 @@ jobs:
 
       - name: Create App Hosting rollout
         # Git-connected backend: roll out the commit just pushed to main (no source upload).
+        # One rollout per workflow — retries while a build is queued cause HTTP 400.
         run: |
           set -euo pipefail
-          max_attempts=3
-          delay=30
-          attempt=1
-          while [ "$attempt" -le "$max_attempts" ]; do
-            echo "Rollout attempt ${attempt}/${max_attempts} for ${GITHUB_SHA}"
-            if npx --yes firebase-tools@15.22.3 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
-              --git-commit "${GITHUB_SHA}" \
-              --force; then
-              exit 0
-            fi
-            if [ "$attempt" -eq "$max_attempts" ]; then
-              echo "::error::App Hosting rollout failed after ${max_attempts} attempts" >&2
-              exit 1
-            fi
-            echo "Rollout failed; retrying in ${delay}s..."
-            sleep "$delay"
-            delay=$((delay * 2))
-            attempt=$((attempt + 1))
-          done
+          echo "Creating rollout for ${GITHUB_SHA}"
+          npx --yes firebase-tools@15.22.3 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
+            --git-commit "${GITHUB_SHA}" \
+            --force
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-ci-sa.json
 
