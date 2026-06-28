@@ -11,11 +11,10 @@
 #   DATABASE_URL         — Neon URL (optional for build; placeholder used if unset)
 #   NEXT_PUBLIC_FIREBASE_* — same values as .env / Firebase console (recommended for production bundles)
 #
-# Deploy uses `firebase deploy` (uploads the Actions checkout). That avoids Developer
-# Connect / GitHub App links — `apphosting:rollouts:create --git-commit` requires the
-# backend’s GitHub link to match your repo (e.g. YevgenyBen/ForestPoker). If rollouts
-# fail with "repository not found under installation ID", fix or recreate the link in
-# Google Cloud → Developer Connect, or keep using deploy from CI as below.
+# Deploy uses `firebase deploy --only apphosting` (uploads the Actions checkout). Hosting
+# (`hosting-minimal/`) is a static OAuth/SDK helper site and rarely changes — deploying it
+# alongside apphosting in one command races on project IAM (setIamPolicy 409). Redeploy
+# hosting manually when hosting-minimal changes: firebase deploy --only hosting
 #
 # Cloud Build still reads env from Firebase Console → App Hosting → backend → Environment
 # (not GitHub Actions secrets), except whatever gets baked into the uploaded tree.
@@ -77,8 +76,7 @@ jobs:
           printf '%s' "${FIREBASE_SERVICE_ACCOUNT_JSON}" > "${GITHUB_WORKSPACE}/firebase-ci-sa.json"
 
       - name: Deploy to Firebase App Hosting
-        # --force skips interactive “deploy local source?”; -P selects Firebase project.
-        # Retry on transient GCP IAM 409 (concurrent setIamPolicy / ETag mismatch).
+        # App Hosting only — avoids IAM setIamPolicy 409 from apphosting+hosting in parallel.
         run: |
           set -euo pipefail
           max_attempts=5
@@ -86,7 +84,7 @@ jobs:
           attempt=1
           while [ "$attempt" -le "$max_attempts" ]; do
             echo "Deploy attempt ${attempt}/${max_attempts}"
-            if npx --yes firebase-tools@latest -P forest-poker-web-a8k3 deploy --only apphosting,hosting --non-interactive --force; then
+            if npx --yes firebase-tools@latest -P forest-poker-web-a8k3 deploy --only apphosting --non-interactive --force; then
               exit 0
             fi
             if [ "$attempt" -eq "$max_attempts" ]; then
