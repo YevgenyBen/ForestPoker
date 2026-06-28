@@ -1,42 +1,78 @@
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { verifySessionCookie } from "@/lib/auth/session";
+import { appSyncState, games } from "@/db/schema";
+import { peekSessionCookie } from "@/lib/auth/session";
+import {
+  getCachedGameDigest,
+  getCachedGlobalDigest,
+} from "@/lib/sync/digestCache";
 
 export const dynamic = "force-dynamic";
+
+const APP_SYNC_ROW_ID = 1;
 
 const NO_STORE = {
   "Cache-Control": "private, no-store, max-age=0",
 } as const;
 
+async function loadGlobalVersion(): Promise<string> {
+  const [row] = await db
+    .select({ version: appSyncState.version })
+    .from(appSyncState)
+    .where(eq(appSyncState.id, APP_SYNC_ROW_ID))
+    .limit(1);
+  return String(row?.version ?? 0);
+}
+
+async function loadGameVersion(gameId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ syncVersion: games.syncVersion })
+    .from(games)
+    .where(eq(games.id, gameId))
+    .limit(1);
+  if (!row) return null;
+  return String(row.syncVersion);
+}
+
+async function requireGameVersion(gameId: string): Promise<string> {
+  const v = await loadGameVersion(gameId);
+  if (v === null) throw new Error("not_found");
+  return v;
+}
+
+function digestResponse(v: string, req: Request) {
+  const etag = `"${v}"`;
+  const headers = { ...NO_STORE, ETag: etag };
+
+  if (req.headers.get("if-none-match") === etag) {
+    return new NextResponse(null, { status: 304, headers });
+  }
+
+  return NextResponse.json({ v }, { headers });
+}
+
 /**
- * Cheap fingerprint of DB activity so clients can poll and call `router.refresh()`
- * when something relevant changed (Neon + serverless has no push channel to the browser).
+ * Cheap sync fingerprint: global row version, or per-game `sync_version`.
+ * Cached ~2.5s per instance; supports ETag / If-None-Match for 304 responses.
  */
-export async function GET() {
-  const session = await verifySessionCookie();
-  if (!session) {
+export async function GET(req: Request) {
+  const hasSession = await peekSessionCookie();
+  if (!hasSession) {
     return NextResponse.json({ v: "guest" }, { headers: NO_STORE });
   }
 
-  const rows = await db.execute(
-    sql`SELECT (
-      (SELECT COUNT(*)::text FROM app_users) || ':' ||
-      (SELECT COUNT(*)::text FROM games) || ':' ||
-      (SELECT COUNT(*)::text FROM ledger_entries) || ':' ||
-      (SELECT COUNT(*)::text FROM game_members) || ':' ||
-      (SELECT COUNT(*)::text FROM settlements) || ':' ||
-      COALESCE((SELECT MAX(recorded_at)::text FROM ledger_entries), '') || ':' ||
-      COALESCE((SELECT MAX(closed_at)::text FROM games), '') || ':' ||
-      COALESCE((SELECT MAX(joined_at)::text FROM game_members), '') || ':' ||
-      COALESCE((SELECT MAX(scheduled_start_at)::text FROM games), '') || ':' ||
-      COALESCE((SELECT COUNT(*)::text FROM game_rsvps), '') || ':' ||
-      COALESCE((SELECT MAX(updated_at)::text FROM game_rsvps), '')
-    ) AS v`
-  );
+  const gameId = new URL(req.url).searchParams.get("gameId")?.trim() || null;
 
-  const row = rows.rows[0] as { v: string } | undefined;
-  const v = row?.v ?? "";
-
-  return NextResponse.json({ v }, { headers: NO_STORE });
+  try {
+    const v = gameId
+      ? await getCachedGameDigest(gameId, () => requireGameVersion(gameId))
+      : await getCachedGlobalDigest(loadGlobalVersion);
+    return digestResponse(v, req);
+  } catch (e) {
+    if (e instanceof Error && e.message === "not_found") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    throw e;
+  }
 }

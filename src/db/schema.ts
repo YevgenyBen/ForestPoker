@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   integer,
+  bigint,
   pgEnum,
   uniqueIndex,
   primaryKey,
@@ -39,10 +40,18 @@ export const appUsers = pgTable(
   ]
 );
 
+/** Single-row global version bumped on any league-visible data change. */
+export const appSyncState = pgTable("app_sync_state", {
+  id: integer("id").primaryKey(),
+  version: bigint("version", { mode: "number" }).notNull().default(0),
+});
+
 export const games = pgTable("games", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   status: gameStatusEnum("status").notNull().default("open"),
+  /** Per-game version for cheap open-game digest polling. */
+  syncVersion: bigint("sync_version", { mode: "number" }).notNull().default(0),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => appUsers.id),

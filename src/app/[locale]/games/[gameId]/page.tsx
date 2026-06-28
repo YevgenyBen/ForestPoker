@@ -14,6 +14,7 @@ import { OpenGameButton } from "@/components/OpenGameButton";
 import { LocationWazeLink } from "@/components/LocationWazeLink";
 import { GameRsvpPanel } from "@/components/GameRsvpPanel";
 import { ActionRefreshBoundary } from "@/components/ActionRefreshBoundary";
+import { DbSync } from "@/components/DbSync";
 import {
   formatDateDdMmYyyy,
   formatDateTimeDdMmYyyyHm,
@@ -63,6 +64,7 @@ export default async function GameDetailPage({
 
   return (
     <main className="flex flex-1 flex-col gap-6 pb-4">
+      <DbSync mode="game" gameId={gameId} gameStatus={game.status} />
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <Link

@@ -9,6 +9,7 @@ import { verifySessionCookie } from "@/lib/auth/session";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { usernameSchema } from "@/lib/username";
+import { bumpSyncVersion } from "@/lib/sync/bump";
 
 export type OnboardingActionState =
   | { error: "invalid" | "taken" | "no_email" | "failed" }
@@ -69,6 +70,7 @@ export async function completeOnboarding(
       email,
       username,
     });
+    await bumpSyncVersion(db);
   } catch (e) {
     safeConsoleError("onboarding:insertAppUser", e);
     return { error: "failed" };

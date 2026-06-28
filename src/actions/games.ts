@@ -25,6 +25,7 @@ import {
 } from "@/lib/settlement";
 import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
+import { bumpSyncVersion } from "@/lib/sync/bump";
 import { formatDateDdMmYyyy, parseScheduledCalendarDate } from "@/lib/formatDate";
 
 const amountSchema = z.coerce.number().int().positive();
@@ -87,6 +88,8 @@ export async function createGame(formData: FormData) {
     userId: user.id,
   });
 
+  await bumpSyncVersion(db, { gameId: game!.id });
+
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/league`);
   redirect(`/${locale}/games/${game!.id}`);
@@ -106,6 +109,8 @@ export async function openGame(gameId: string) {
     .update(games)
     .set({ status: "open" })
     .where(eq(games.id, gameId));
+
+  await bumpSyncVersion(db, { gameId });
 
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/games/${gameId}`);
@@ -140,6 +145,8 @@ export async function setGameRsvp(gameId: string, status: string) {
 
   await db.insert(gameMembers).values({ gameId, userId: user.id }).onConflictDoNothing();
 
+  await bumpSyncVersion(db, { gameId });
+
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/games/${gameId}`);
   revalidatePath(`/${locale}/league`);
@@ -155,6 +162,8 @@ export async function joinGame(gameId: string) {
   }
 
   await db.insert(gameMembers).values({ gameId, userId: user.id }).onConflictDoNothing();
+
+  await bumpSyncVersion(db, { gameId });
 
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/games/${gameId}`);
@@ -189,6 +198,8 @@ export async function addLedgerEntry(input: {
     amountNis: amount.data,
     note: null,
   });
+
+  await bumpSyncVersion(db, { gameId: input.gameId });
 
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/games/${input.gameId}`);
@@ -267,6 +278,8 @@ export async function closeGame(gameId: string) {
         transfers,
         closerUsername: user.username,
       };
+
+      await bumpSyncVersion(tx, { gameId });
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
@@ -304,6 +317,8 @@ export async function deleteGame(gameId: string) {
 
   await db.delete(games).where(eq(games.id, gameId));
 
+  await bumpSyncVersion(db);
+
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/games/${gameId}`);
   revalidatePath(`/${locale}/career`);
@@ -325,6 +340,8 @@ export async function cancelScheduledGame(gameId: string) {
   }
 
   await db.delete(games).where(eq(games.id, gameId));
+
+  await bumpSyncVersion(db);
 
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/games/${gameId}`);

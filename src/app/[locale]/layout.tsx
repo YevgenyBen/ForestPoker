@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { HtmlLang } from "@/components/HtmlLang";
 import { BottomNav } from "@/components/BottomNav";
-import { DbSync } from "@/components/DbSync";
 
 type Props = {
   children: React.ReactNode;
@@ -29,7 +28,6 @@ export default async function LocaleLayout({ children, params }: Props) {
       <div className="mx-auto flex min-h-dvh max-w-lg flex-col pb-24 pt-4 px-4">
         {children}
       </div>
-      <DbSync />
       <BottomNav />
     </NextIntlClientProvider>
   );

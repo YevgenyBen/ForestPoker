@@ -29,6 +29,19 @@ export async function verifySessionCookie(): Promise<
   }
 }
 
+/** Lightweight session check for the digest poll (skips revocation lookup). */
+export async function peekSessionCookie(): Promise<boolean> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return false;
+  try {
+    const auth = getAdminAuth();
+    await auth.verifySessionCookie(token, false);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function getViewer(): Promise<ViewerState> {
   const session = await verifySessionCookie();
   if (!session) return { kind: "guest" };

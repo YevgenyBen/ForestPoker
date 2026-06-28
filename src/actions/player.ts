@@ -9,6 +9,7 @@ import { appUsers } from "@/db/schema";
 import { getViewer } from "@/lib/auth/session";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { usernameSchema } from "@/lib/username";
+import { bumpSyncVersion } from "@/lib/sync/bump";
 
 export type UpdateProfileState =
   | null
@@ -70,6 +71,8 @@ export async function updatePlayerProfile(
     safeConsoleError("player:updateProfile", e);
     return { error: "failed" };
   }
+
+  await bumpSyncVersion(db);
 
   revalidatePath(`/${locale}/games`);
   revalidatePath(`/${locale}/player`);

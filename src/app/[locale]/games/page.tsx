@@ -12,6 +12,7 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { CancelScheduledGameButton } from "@/components/CancelScheduledGameButton";
 import { DeleteGameButton } from "@/components/DeleteGameButton";
 import { CreateGameForm } from "@/components/CreateGameForm";
+import { DbSync } from "@/components/DbSync";
 import { LocationWazeLink } from "@/components/LocationWazeLink";
 import {
   formatDateDdMmYyyy,
@@ -170,6 +171,7 @@ export default async function GamesPage({
 
   return (
     <main className="flex flex-1 flex-col gap-6">
+      <DbSync mode="global" />
       <header className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-[var(--fp-ink)]">{t("title")}</h1>
