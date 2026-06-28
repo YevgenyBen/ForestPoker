@@ -198,7 +198,6 @@ async function createBuild(buildId, commit) {
     method: "POST",
     query: {
       buildId,
-      requestId: `gh-${runId}`,
     },
     body: {
       source: {
@@ -217,7 +216,6 @@ async function createRollout(rolloutId, buildId) {
     method: "POST",
     query: {
       rolloutId,
-      requestId: `gh-rollout-${runId}`,
     },
     body: {
       build: buildResourceName(buildId),
