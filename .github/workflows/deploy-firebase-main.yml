@@ -6,7 +6,8 @@
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   FIREBASE_SERVICE_ACCOUNT_JSON — full service account JSON. Needs
-#                         firebaseapphosting.rollouts.create (e.g. roles/firebaseapphosting.developer).
+#                         roles/firebaseapphosting.developer (or admin) and
+#                         roles/developerconnect.readTokenAccessor for Git rollouts.
 #   DATABASE_URL         — Neon URL (optional for build; placeholder used if unset)
 #   NEXT_PUBLIC_FIREBASE_* — same values as .env / Firebase console (recommended for production bundles)
 #

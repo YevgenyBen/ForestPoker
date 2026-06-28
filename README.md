@@ -59,12 +59,12 @@ Connect this repo in the Firebase console, set secrets `DATABASE_URL`, Firebase 
 
 **GitHub Actions** (`.github/workflows/deploy-firebase-main.yml`): add repository secret **`FIREBASE_SERVICE_ACCOUNT_JSON`** — paste the **entire** service account JSON (same file as local `secrets/firebase-adminsdk.json`). The workflow authenticates the CLI with **`GOOGLE_APPLICATION_CREDENTIALS`**.
 
-The service account must be allowed to create App Hosting rollouts from GitHub. In [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=forest-poker-web-a8k3), grant that principal one of:
+The service account must be allowed to create App Hosting rollouts from GitHub. In [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=forest-poker-web-a8k3), grant that principal:
 
-- **Firebase App Hosting Developer** (`roles/firebaseapphosting.developer`) — enough for `apphosting:rollouts:create`
-- **Firebase App Hosting Admin** (`roles/firebaseapphosting.admin`) or **Firebase Admin** (`roles/firebase.admin`) — broader
+- **Developer Connect Read Token Accessor** (`roles/developerconnect.readTokenAccessor`) — required for `apphosting:rollouts:create` to read the linked GitHub repo
+- **Firebase App Hosting Developer** (`roles/firebaseapphosting.developer`) or **Firebase App Hosting Admin** (`roles/firebaseapphosting.admin`) — `firebaseapphosting.rollouts.create`
 
-Without `firebaseapphosting.rollouts.create`, the rollout step fails with HTTP 403.
+Without these, the rollout step fails with HTTP 403.
 
 If you **rename the GitHub repository**, open Firebase → App Hosting → your backend → **connected repository** and reconnect or verify the link so deploys still run.
 
