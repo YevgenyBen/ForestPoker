@@ -11,10 +11,10 @@
 #   DATABASE_URL         — Neon URL (optional for build; placeholder used if unset)
 #   NEXT_PUBLIC_FIREBASE_* — same values as .env / Firebase console (recommended for production bundles)
 #
-# Deploy uses `firebase deploy --only apphosting` (uploads the Actions checkout). Hosting
-# (`hosting-minimal/`) is a static OAuth/SDK helper site and rarely changes — deploying it
-# alongside apphosting in one command races on project IAM (setIamPolicy 409). Redeploy
-# hosting manually when hosting-minimal changes: firebase deploy --only hosting
+# Deploy triggers an App Hosting rollout from the pushed GitHub commit (Developer Connect).
+# Do NOT use `firebase deploy` here — source uploads call setIamPolicy on every run and
+# hit persistent IAM 409 conflicts. Automatic console rollouts stay disabled; Actions
+# controls when deploys happen via `apphosting:rollouts:create`.
 #
 # Cloud Build still reads env from Firebase Console → App Hosting → backend → Environment
 # (not GitHub Actions secrets), except whatever gets baked into the uploaded tree.
@@ -75,23 +75,25 @@ jobs:
           fi
           printf '%s' "${FIREBASE_SERVICE_ACCOUNT_JSON}" > "${GITHUB_WORKSPACE}/firebase-ci-sa.json"
 
-      - name: Deploy to Firebase App Hosting
-        # App Hosting only — avoids IAM setIamPolicy 409 from apphosting+hosting in parallel.
+      - name: Create App Hosting rollout
+        # Git-connected backend: roll out the commit just pushed to main (no source upload).
         run: |
           set -euo pipefail
-          max_attempts=5
-          delay=20
+          max_attempts=3
+          delay=30
           attempt=1
           while [ "$attempt" -le "$max_attempts" ]; do
-            echo "Deploy attempt ${attempt}/${max_attempts}"
-            if npx --yes firebase-tools@latest -P forest-poker-web-a8k3 deploy --only apphosting --non-interactive --force; then
+            echo "Rollout attempt ${attempt}/${max_attempts} for ${GITHUB_SHA}"
+            if npx --yes firebase-tools@14.29.0 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
+              --git-commit "${GITHUB_SHA}" \
+              --force; then
               exit 0
             fi
             if [ "$attempt" -eq "$max_attempts" ]; then
-              echo "::error::Firebase deploy failed after ${max_attempts} attempts" >&2
+              echo "::error::App Hosting rollout failed after ${max_attempts} attempts" >&2
               exit 1
             fi
-            echo "Deploy failed (often IAM 409); retrying in ${delay}s..."
+            echo "Rollout failed; retrying in ${delay}s..."
             sleep "$delay"
             delay=$((delay * 2))
             attempt=$((attempt + 1))
