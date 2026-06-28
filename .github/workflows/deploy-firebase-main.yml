@@ -84,7 +84,7 @@ jobs:
           attempt=1
           while [ "$attempt" -le "$max_attempts" ]; do
             echo "Rollout attempt ${attempt}/${max_attempts} for ${GITHUB_SHA}"
-            if npx --yes firebase-tools@14.29.0 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
+            if npx --yes firebase-tools@15.22.3 -P forest-poker-web-a8k3 apphosting:rollouts:create forest-poker \
               --git-commit "${GITHUB_SHA}" \
               --force; then
               exit 0
