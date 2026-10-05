@@ -18,6 +18,7 @@ import { DbSync } from "@/components/DbSync";
 import {
   formatDateDdMmYyyy,
   formatDateTimeDdMmYyyyHm,
+  formatTimeHm,
 } from "@/lib/formatDate";
 
 export default async function GameDetailPage({
@@ -40,6 +41,7 @@ export default async function GameDetailPage({
     settlements,
     closerName,
     isMember,
+    myLastEntry,
     initiatorUsername,
     initiatorLocation,
     rsvp,
@@ -192,7 +194,17 @@ export default async function GameDetailPage({
       {!isScheduled && (
         <>
           {game.status === "open" && isMember && (
-            <GameLedgerForm gameId={gameId} />
+            <GameLedgerForm
+              gameId={gameId}
+              lastEntry={
+                myLastEntry && {
+                  id: myLastEntry.id,
+                  kind: myLastEntry.kind,
+                  amountLabel: money(myLastEntry.amountNis),
+                  timeLabel: formatTimeHm(myLastEntry.recordedAt),
+                }
+              }
+            />
           )}
 
           {game.status === "open" && !isMember && (

@@ -31,6 +31,7 @@ import { getLeagueSettings } from "@/lib/leagueSettings";
 import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { bumpSyncVersion } from "@/lib/sync/bump";
+import { notVoided } from "@/lib/ledger";
 import { formatDateDdMmYyyy, parseScheduledCalendarDate } from "@/lib/formatDate";
 
 const amountSchema = z.coerce.number().int().positive();
@@ -213,6 +214,79 @@ export async function addLedgerEntry(input: {
   return { ok: true as const };
 }
 
+/** The player's most recent ledger entry in a game that hasn't been undone. */
+async function latestLiveEntry(
+  tx: Pick<typeof db, "select">,
+  gameId: string,
+  userId: string
+) {
+  const [entry] = await tx
+    .select({
+      id: ledgerEntries.id,
+      kind: ledgerEntries.kind,
+      amountNis: ledgerEntries.amountNis,
+      recordedAt: ledgerEntries.recordedAt,
+    })
+    .from(ledgerEntries)
+    .where(
+      and(
+        eq(ledgerEntries.gameId, gameId),
+        eq(ledgerEntries.userId, userId),
+        notVoided
+      )
+    )
+    .orderBy(desc(ledgerEntries.recordedAt), desc(ledgerEntries.id))
+    .limit(1);
+  return entry ?? null;
+}
+
+/**
+ * Undo the player's own most recent live entry in an open game. `entryId` is the
+ * entry the player was shown; if it is no longer their latest live entry (e.g. a
+ * double-tap already undid it), nothing is voided and `stale` is returned.
+ */
+export async function undoLedgerEntry(input: {
+  gameId: string;
+  entryId: string;
+}) {
+  const { user, locale } = await requireUser();
+
+  try {
+    await db.transaction(async (tx) => {
+      // Locking the game serializes this with closeGame and with repeated undos.
+      const [g] = await tx
+        .select()
+        .from(games)
+        .where(eq(games.id, input.gameId))
+        .for("update")
+        .limit(1);
+      if (!g || g.status !== "open") throw new Error("closed");
+
+      const latest = await latestLiveEntry(tx, input.gameId, user.id);
+      if (!latest || latest.id !== input.entryId) throw new Error("stale");
+
+      await tx
+        .update(ledgerEntries)
+        .set({ voidedAt: new Date() })
+        .where(eq(ledgerEntries.id, latest.id));
+
+      await bumpSyncVersion(tx, { gameId: input.gameId });
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "closed") return { error: "closed" as const };
+    if (msg === "stale") return { error: "stale" as const };
+    safeConsoleError("games:undoLedgerEntry", e);
+    throw e;
+  }
+
+  revalidatePath(`/${locale}/games`);
+  revalidatePath(`/${locale}/games/${input.gameId}`);
+  revalidatePath(`/${locale}/career`);
+  revalidatePath(`/${locale}/league`);
+  return { ok: true as const };
+}
+
 export async function closeGame(gameId: string) {
   const { user, locale } = await requireUser();
 
@@ -250,7 +324,7 @@ export async function closeGame(gameId: string) {
           amountNis: ledgerEntries.amountNis,
         })
         .from(ledgerEntries)
-        .where(eq(ledgerEntries.gameId, gameId));
+        .where(and(eq(ledgerEntries.gameId, gameId), notVoided));
 
       const netByUser = computeNetByUser(ledger);
       const sum = netSum(netByUser);
@@ -443,7 +517,7 @@ export async function getGameDetail(gameId: string) {
         amountNis: ledgerEntries.amountNis,
       })
       .from(ledgerEntries)
-      .where(eq(ledgerEntries.gameId, gameId));
+      .where(and(eq(ledgerEntries.gameId, gameId), notVoided));
   }
 
   const buyInByUser = new Map<string, number>();
@@ -507,6 +581,11 @@ export async function getGameDetail(gameId: string) {
   }
 
   const isMember = members.some((m) => m.userId === user.id);
+
+  const myLastEntry =
+    game.status === "open" && isMember
+      ? await latestLiveEntry(db, gameId, user.id)
+      : null;
 
   const bankNis = ledgerRows.reduce(
     (sum, row) =>
@@ -580,6 +659,7 @@ export async function getGameDetail(gameId: string) {
     settlements: settlementRows,
     closerName,
     isMember,
+    myLastEntry,
     initiatorUsername: initiator?.username ?? "?",
     initiatorLocation: initiator?.location ?? null,
     rsvp,
@@ -615,7 +695,8 @@ export async function getCareerSummary() {
     .where(
       and(
         eq(ledgerEntries.userId, user.id),
-        inArray(ledgerEntries.gameId, gameIds)
+        inArray(ledgerEntries.gameId, gameIds),
+        notVoided
       )
     );
 
@@ -688,9 +769,12 @@ export async function getLeagueStandings(): Promise<
     })
     .from(ledgerEntries)
     .where(
-      inArray(
-        ledgerEntries.gameId,
-        closedGames.map((g) => g.id)
+      and(
+        inArray(
+          ledgerEntries.gameId,
+          closedGames.map((g) => g.id)
+        ),
+        notVoided
       )
     );
 

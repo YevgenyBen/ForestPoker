@@ -131,6 +131,8 @@ export const ledgerEntries = pgTable("ledger_entries", {
   recordedAt: timestamp("recorded_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  /** Set when the player undoes this entry; a voided entry counts for nothing. */
+  voidedAt: timestamp("voided_at", { withTimezone: true }),
 });
 
 export const settlements = pgTable("settlements", {

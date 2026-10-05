@@ -1,5 +1,5 @@
 /**
- * Buy-out rows store **profit** (not total stack). Net = sum(buy_out) - sum(buy_in).
+ * Buy-out rows store the **full amount** taken back out (not profit). Net = sum(buy_out) - sum(buy_in).
  * Greedy matching minimizes transfer count (at most N-1 for N nonzero balances).
  */
 export type Transfer = {
