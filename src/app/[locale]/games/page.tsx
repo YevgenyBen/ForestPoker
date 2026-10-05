@@ -56,17 +56,17 @@ function GameRow({
   return (
     <li>
       <div className={rowClass}>
-        <Link
-          href={`/${locale}/games/${g.id}`}
-          className="flex min-w-0 flex-1 flex-col gap-2 px-4 py-3"
-        >
+        {/* Stretched link: the title's ::after covers the row so it stays tappable,
+            without wrapping the Waze link (an <a> can't contain another <a>). */}
+        <div className="relative flex min-w-0 flex-1 flex-col gap-2 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <span
-              className="min-w-0 flex-1 font-medium text-[var(--fp-ink)]"
+            <Link
+              href={`/${locale}/games/${g.id}`}
+              className="min-w-0 flex-1 font-medium text-[var(--fp-ink)] after:absolute after:inset-0 after:content-['']"
               dir="auto"
             >
               {g.title}
-            </span>
+            </Link>
             {g.status !== "scheduled" && (
               <span className="flex shrink-0 items-center gap-2 text-sm">
                 <span className={statusClass}>{statusText}</span>
@@ -98,16 +98,19 @@ function GameRow({
               ) : null}
               <p dir="auto">
                 <span className="font-medium text-[var(--fp-ink)]">{t("locationShort")}: </span>
-                <LocationWazeLink
-                  address={
-                    g.gameLocation?.trim() || g.initiatorLocation?.trim() || ""
-                  }
-                  openInWazeLabel={t("openInWaze")}
-                />
+                {/* Raised above the stretched row link so it stays clickable. */}
+                <span className="relative z-10">
+                  <LocationWazeLink
+                    address={
+                      g.gameLocation?.trim() || g.initiatorLocation?.trim() || ""
+                    }
+                    openInWazeLabel={t("openInWaze")}
+                  />
+                </span>
               </p>
             </div>
           )}
-        </Link>
+        </div>
         {(showCancelScheduled || showGameDelete) && (
           <div className="flex shrink-0 items-center border-s border-[var(--fp-wood-mid)]/20 px-2 py-2">
             {showCancelScheduled ? (
