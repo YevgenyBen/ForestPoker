@@ -189,6 +189,17 @@ describe("league standings", () => {
     expect(active.map((r) => r.username)).toEqual(["bob"]);
   });
 
+  it("applies the league's activity threshold", () => {
+    const input = {
+      closedGames: [1, 2, 3, 4].map((d) => closedOn(`g${d}`, d)),
+      ledgerEntries: [buyIn("g1", "u-bob"), buyIn("g2", "u-bob"), buyIn("g3", "u-bob")],
+      usernames,
+    };
+
+    expect(names(computeLeagueStandings({ ...input, activeThresholdPct: 50 }).active)).toEqual(["bob"]);
+    expect(names(computeLeagueStandings({ ...input, activeThresholdPct: 75 }).inactive)).toEqual(["bob"]);
+  });
+
   it("is empty when there are no closed games", () => {
     expect(
       computeLeagueStandings({

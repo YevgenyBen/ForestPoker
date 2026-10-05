@@ -8,6 +8,7 @@ import {
   pgEnum,
   uniqueIndex,
   primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -45,6 +46,22 @@ export const appSyncState = pgTable("app_sync_state", {
   id: integer("id").primaryKey(),
   version: bigint("version", { mode: "number" }).notNull().default(0),
 });
+
+/** Single-row league-wide settings (id = 1). A missing row means defaults. */
+export const leagueSettings = pgTable(
+  "league_settings",
+  {
+    id: integer("id").primaryKey(),
+    /** Share of games (percent) a player must exceed to count as active. */
+    activeThresholdPct: integer("active_threshold_pct").notNull().default(50),
+  },
+  (t) => [
+    check(
+      "league_settings_active_threshold_pct_range",
+      sql`${t.activeThresholdPct} between 1 and 99`
+    ),
+  ]
+);
 
 export const games = pgTable("games", {
   id: uuid("id").primaryKey().defaultRandom(),

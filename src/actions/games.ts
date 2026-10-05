@@ -25,9 +25,9 @@ import {
 } from "@/lib/settlement";
 import {
   computeLeagueStandings,
-  DEFAULT_ACTIVE_THRESHOLD_PCT,
   type LeagueStandings,
 } from "@/lib/leagueStandings";
+import { getLeagueSettings } from "@/lib/leagueSettings";
 import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { bumpSyncVersion } from "@/lib/sync/bump";
@@ -663,16 +663,17 @@ export async function getLeagueStandings(): Promise<
 > {
   await requireUser();
 
-  const activeThresholdPct = DEFAULT_ACTIVE_THRESHOLD_PCT;
-
-  const closedGames = await db
-    .select({
-      id: games.id,
-      closedAt: games.closedAt,
-      createdAt: games.createdAt,
-    })
-    .from(games)
-    .where(eq(games.status, "closed"));
+  const [{ activeThresholdPct }, closedGames] = await Promise.all([
+    getLeagueSettings(),
+    db
+      .select({
+        id: games.id,
+        closedAt: games.closedAt,
+        createdAt: games.createdAt,
+      })
+      .from(games)
+      .where(eq(games.status, "closed")),
+  ]);
 
   if (closedGames.length === 0) {
     return { active: [], inactive: [], activeThresholdPct };
