@@ -26,6 +26,16 @@ export function formatDateTimeDdMmYyyyHm(date: Date): string {
   }).format(date);
 }
 
+/** Time of day only (24h): `HH:mm` */
+export function formatTimeHm(date: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: FP_DISPLAY_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 /**
  * Parsed calendar day at noon UTC (same semantics as game scheduling).
  * Accepts `yyyy-mm-dd` (legacy) or strict `dd/mm/yyyy`.

@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { addLedgerEntry } from "@/actions/games";
+import { addLedgerEntry, undoLedgerEntry } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
 import { Spinner } from "@/components/Spinner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+/** The viewer's most recent entry that can still be undone, preformatted for display. */
+type LastEntry = {
+  id: string;
+  kind: "buy_in" | "buy_out";
+  amountLabel: string;
+  timeLabel: string;
+};
 
 type Props = {
   gameId: string;
+  lastEntry: LastEntry | null;
 };
 
 const svgProps = {
@@ -53,13 +63,14 @@ function BuyOutIcon({ className }: { className?: string }) {
   );
 }
 
-export function GameLedgerForm({ gameId }: Props) {
+export function GameLedgerForm({ gameId, lastEntry }: Props) {
   const t = useTranslations("games");
   const tCommon = useTranslations("common");
   const { pending, run } = useActionRefresh();
   const [kind, setKind] = useState<"buy_in" | "buy_out">("buy_in");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmingUndo, setConfirmingUndo] = useState<LastEntry | null>(null);
 
   const isBuyIn = kind === "buy_in";
 
@@ -82,6 +93,18 @@ export function GameLedgerForm({ gameId }: Props) {
         return false;
       }
       setAmount("");
+      return true;
+    });
+  }
+
+  async function handleUndo(entry: LastEntry) {
+    setConfirmingUndo(null);
+    setError(null);
+    await run(async () => {
+      const res = await undoLedgerEntry({ gameId, entryId: entry.id });
+      // On stale or closed, still refresh so the player sees the current state.
+      if (res.error === "stale") setError(t("undoStale"));
+      else if (res.error === "closed") setError(t("alreadyClosed"));
       return true;
     });
   }
@@ -150,6 +173,45 @@ export function GameLedgerForm({ gameId }: Props) {
         {pending && <Spinner className="size-4 text-white" />}
         {pending ? tCommon("loading") : t("addEntry")}
       </button>
+      {lastEntry && (
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--fp-wood-mid)]/20 pt-3 text-sm">
+          <p className="min-w-0 text-[var(--fp-secondary)]">
+            {t("lastEntry")}:{" "}
+            <span className="font-semibold text-[var(--fp-ink)]">
+              {lastEntry.kind === "buy_in" ? t("buyIn") : t("ledgerBuyOut")}{" "}
+              <span className="tabular-nums" dir="ltr">
+                {lastEntry.amountLabel}
+              </span>
+            </span>{" "}
+            · <span className="tabular-nums" dir="ltr">{lastEntry.timeLabel}</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setConfirmingUndo(lastEntry)}
+            disabled={pending}
+            className="shrink-0 rounded-lg border border-[var(--fp-wood-mid)]/40 px-3 py-1.5 font-semibold text-[var(--fp-ink)] disabled:opacity-50"
+          >
+            {t("undo")}
+          </button>
+        </div>
+      )}
+      <ConfirmDialog
+        open={confirmingUndo !== null}
+        message={
+          confirmingUndo
+            ? t(
+                confirmingUndo.kind === "buy_in"
+                  ? "undoConfirmBuyIn"
+                  : "undoConfirmBuyOut",
+                { amount: confirmingUndo.amountLabel }
+              )
+            : ""
+        }
+        confirmLabel={t("undoConfirmAction")}
+        cancelLabel={t("undoKeep")}
+        onConfirm={() => confirmingUndo && void handleUndo(confirmingUndo)}
+        onCancel={() => setConfirmingUndo(null)}
+      />
     </form>
   );
 }
