@@ -64,7 +64,7 @@ export default async function LeaguePage({
             <tbody>
               {rows.map((r, i) => {
                 const isSelf = viewerId !== null && r.userId === viewerId;
-                const positive = r.totalNis >= 0;
+                const positive = r.lifetimeNetNis >= 0;
                 return (
                   <tr
                     key={r.userId}
@@ -89,7 +89,7 @@ export default async function LeaguePage({
                       }`}
                       dir="ltr"
                     >
-                      {money(r.totalNis)}
+                      {money(r.lifetimeNetNis)}
                     </td>
                   </tr>
                 );

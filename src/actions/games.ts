@@ -23,6 +23,10 @@ import {
   netSum,
   type Transfer,
 } from "@/lib/settlement";
+import {
+  computeLeagueStandings,
+  type LeagueStandingRow,
+} from "@/lib/leagueStandings";
 import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { bumpSyncVersion } from "@/lib/sync/bump";
@@ -660,9 +664,7 @@ export async function getLeagueStandings() {
 
   const closedIds = closedRows.map((r) => r.id);
   if (closedIds.length === 0) {
-    return {
-      rows: [] as { userId: string; username: string; totalNis: number }[],
-    };
+    return { rows: [] as LeagueStandingRow[] };
   }
 
   const memberRows = await db
@@ -670,13 +672,9 @@ export async function getLeagueStandings() {
     .from(gameMembers)
     .where(inArray(gameMembers.gameId, closedIds));
 
-  const totals = new Map<string, number>();
-  for (const m of memberRows) {
-    totals.set(m.userId, 0);
-  }
-
   const ledgerRows = await db
     .select({
+      gameId: ledgerEntries.gameId,
       userId: ledgerEntries.userId,
       kind: ledgerEntries.kind,
       amountNis: ledgerEntries.amountNis,
@@ -684,15 +682,14 @@ export async function getLeagueStandings() {
     .from(ledgerEntries)
     .where(inArray(ledgerEntries.gameId, closedIds));
 
-  for (const row of ledgerRows) {
-    const delta =
-      row.kind === "buy_out" ? row.amountNis : -row.amountNis;
-    totals.set(row.userId, (totals.get(row.userId) ?? 0) + delta);
-  }
-
-  const userIds = [...totals.keys()];
-  if (userIds.length === 0) {
-    return { rows: [] as { userId: string; username: string; totalNis: number }[] };
+  const playerIds = [
+    ...new Set([
+      ...memberRows.map((m) => m.userId),
+      ...ledgerRows.map((r) => r.userId),
+    ]),
+  ];
+  if (playerIds.length === 0) {
+    return { rows: [] as LeagueStandingRow[] };
   }
 
   const usersRows = await db
@@ -701,22 +698,13 @@ export async function getLeagueStandings() {
       username: appUsers.username,
     })
     .from(appUsers)
-    .where(inArray(appUsers.id, userIds));
+    .where(inArray(appUsers.id, playerIds));
 
-  const byId = new Map(usersRows.map((u) => [u.id, u.username]));
-
-  const rows = userIds
-    .map((id) => ({
-      userId: id,
-      username: byId.get(id) ?? id,
-      totalNis: totals.get(id) ?? 0,
-    }))
-    .sort((a, b) => {
-      if (b.totalNis !== a.totalNis) return b.totalNis - a.totalNis;
-      return a.username.localeCompare(b.username, undefined, {
-        sensitivity: "base",
-      });
-    });
+  const rows = computeLeagueStandings({
+    playerIds,
+    ledgerEntries: ledgerRows,
+    usernames: new Map(usersRows.map((u) => [u.id, u.username])),
+  });
 
   return { rows };
 }
