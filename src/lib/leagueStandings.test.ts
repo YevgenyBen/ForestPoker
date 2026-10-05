@@ -9,7 +9,6 @@ const usernames = new Map([
 describe("league standings", () => {
   it("gives each player their lifetime net: buy-outs minus buy-ins across closed games", () => {
     const rows = computeLeagueStandings({
-      playerIds: ["u-alice", "u-bob"],
       ledgerEntries: [
         { gameId: "g1", userId: "u-alice", kind: "buy_in", amountNis: 100 },
         { gameId: "g1", userId: "u-alice", kind: "buy_out", amountNis: 250 },
@@ -28,12 +27,14 @@ describe("league standings", () => {
 
   it("ranks by lifetime net, highest first, breaking ties alphabetically ignoring case", () => {
     const rows = computeLeagueStandings({
-      playerIds: ["u-loser", "u-zed", "u-amy", "u-winner"],
       ledgerEntries: [
         { gameId: "g1", userId: "u-loser", kind: "buy_in", amountNis: 300 },
-        { gameId: "g1", userId: "u-zed", kind: "buy_out", amountNis: 40 },
-        { gameId: "g1", userId: "u-amy", kind: "buy_out", amountNis: 40 },
-        { gameId: "g1", userId: "u-winner", kind: "buy_out", amountNis: 220 },
+        { gameId: "g1", userId: "u-zed", kind: "buy_in", amountNis: 100 },
+        { gameId: "g1", userId: "u-zed", kind: "buy_out", amountNis: 140 },
+        { gameId: "g1", userId: "u-amy", kind: "buy_in", amountNis: 100 },
+        { gameId: "g1", userId: "u-amy", kind: "buy_out", amountNis: 140 },
+        { gameId: "g1", userId: "u-winner", kind: "buy_in", amountNis: 100 },
+        { gameId: "g1", userId: "u-winner", kind: "buy_out", amountNis: 320 },
       ],
       usernames: new Map([
         ["u-loser", "Loser"],
@@ -46,9 +47,20 @@ describe("league standings", () => {
     expect(rows.map((r) => r.username)).toEqual(["Winner", "amy", "Zed", "Loser"]);
   });
 
+  it("leaves out players who never bought in, since they never played", () => {
+    const rows = computeLeagueStandings({
+      ledgerEntries: [
+        { gameId: "g1", userId: "u-alice", kind: "buy_in", amountNis: 100 },
+        { gameId: "g1", userId: "u-alice", kind: "buy_out", amountNis: 100 },
+        { gameId: "g1", userId: "u-bob", kind: "buy_out", amountNis: 20 },
+      ],
+      usernames,
+    });
+
+    expect(rows).toEqual([{ userId: "u-alice", username: "alice", lifetimeNetNis: 0 }]);
+  });
+
   it("is empty when there are no closed games", () => {
-    expect(
-      computeLeagueStandings({ playerIds: [], ledgerEntries: [], usernames: new Map() })
-    ).toEqual([]);
+    expect(computeLeagueStandings({ ledgerEntries: [], usernames: new Map() })).toEqual([]);
   });
 });

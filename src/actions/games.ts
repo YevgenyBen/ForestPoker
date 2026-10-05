@@ -667,11 +667,6 @@ export async function getLeagueStandings() {
     return { rows: [] as LeagueStandingRow[] };
   }
 
-  const memberRows = await db
-    .select({ userId: gameMembers.userId })
-    .from(gameMembers)
-    .where(inArray(gameMembers.gameId, closedIds));
-
   const ledgerRows = await db
     .select({
       gameId: ledgerEntries.gameId,
@@ -682,12 +677,7 @@ export async function getLeagueStandings() {
     .from(ledgerEntries)
     .where(inArray(ledgerEntries.gameId, closedIds));
 
-  const playerIds = [
-    ...new Set([
-      ...memberRows.map((m) => m.userId),
-      ...ledgerRows.map((r) => r.userId),
-    ]),
-  ];
+  const playerIds = [...new Set(ledgerRows.map((r) => r.userId))];
   if (playerIds.length === 0) {
     return { rows: [] as LeagueStandingRow[] };
   }
@@ -701,7 +691,6 @@ export async function getLeagueStandings() {
     .where(inArray(appUsers.id, playerIds));
 
   const rows = computeLeagueStandings({
-    playerIds,
     ledgerEntries: ledgerRows,
     usernames: new Map(usersRows.map((u) => [u.id, u.username])),
   });

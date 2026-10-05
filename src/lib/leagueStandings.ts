@@ -13,14 +13,19 @@ export type LeagueStandingRow = {
   lifetimeNetNis: number;
 };
 
-/** Lifetime net per player across the given closed-game ledger entries. */
+/**
+ * Lifetime net per player across the given closed-game ledger entries.
+ * Only players who bought in at least once have played, so only they are listed.
+ */
 export function computeLeagueStandings(input: {
-  playerIds: string[];
   ledgerEntries: StandingsLedgerEntry[];
   usernames: Map<string, string>;
 }): LeagueStandingRow[] {
   const net = computeNetByUser(input.ledgerEntries);
-  return input.playerIds
+  const playerIds = new Set(
+    input.ledgerEntries.filter((e) => e.kind === "buy_in").map((e) => e.userId)
+  );
+  return [...playerIds]
     .map((id) => ({
       userId: id,
       username: input.usernames.get(id) ?? id,
