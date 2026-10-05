@@ -25,7 +25,8 @@ import {
 } from "@/lib/settlement";
 import {
   computeLeagueStandings,
-  type LeagueStandingRow,
+  DEFAULT_ACTIVE_THRESHOLD_PCT,
+  type LeagueStandings,
 } from "@/lib/leagueStandings";
 import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
@@ -653,18 +654,28 @@ export async function getCareerSummary() {
   return { lifetimeNis: lifetime, rows };
 }
 
-/** Lifetime net per player across closed games only (same rules as career net). */
-export async function getLeagueStandings() {
+/**
+ * League standings across closed games: lifetime net per player (same rules as
+ * career net), split into active and inactive players.
+ */
+export async function getLeagueStandings(): Promise<
+  LeagueStandings & { activeThresholdPct: number }
+> {
   await requireUser();
 
-  const closedRows = await db
-    .select({ id: games.id })
+  const activeThresholdPct = DEFAULT_ACTIVE_THRESHOLD_PCT;
+
+  const closedGames = await db
+    .select({
+      id: games.id,
+      closedAt: games.closedAt,
+      createdAt: games.createdAt,
+    })
     .from(games)
     .where(eq(games.status, "closed"));
 
-  const closedIds = closedRows.map((r) => r.id);
-  if (closedIds.length === 0) {
-    return { rows: [] as LeagueStandingRow[] };
+  if (closedGames.length === 0) {
+    return { active: [], inactive: [], activeThresholdPct };
   }
 
   const ledgerRows = await db
@@ -675,25 +686,30 @@ export async function getLeagueStandings() {
       amountNis: ledgerEntries.amountNis,
     })
     .from(ledgerEntries)
-    .where(inArray(ledgerEntries.gameId, closedIds));
+    .where(
+      inArray(
+        ledgerEntries.gameId,
+        closedGames.map((g) => g.id)
+      )
+    );
 
   const playerIds = [...new Set(ledgerRows.map((r) => r.userId))];
-  if (playerIds.length === 0) {
-    return { rows: [] as LeagueStandingRow[] };
-  }
+  const usersRows = playerIds.length
+    ? await db
+        .select({
+          id: appUsers.id,
+          username: appUsers.username,
+        })
+        .from(appUsers)
+        .where(inArray(appUsers.id, playerIds))
+    : [];
 
-  const usersRows = await db
-    .select({
-      id: appUsers.id,
-      username: appUsers.username,
-    })
-    .from(appUsers)
-    .where(inArray(appUsers.id, playerIds));
-
-  const rows = computeLeagueStandings({
+  const standings = computeLeagueStandings({
+    closedGames,
     ledgerEntries: ledgerRows,
     usernames: new Map(usersRows.map((u) => [u.id, u.username])),
+    activeThresholdPct,
   });
 
-  return { rows };
+  return { ...standings, activeThresholdPct };
 }

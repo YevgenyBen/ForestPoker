@@ -141,11 +141,14 @@
   },
   "league": {
     "title": "League",
-    "subtitle": "Lifetime net across closed games — sorted by total winnings",
+    "subtitle": "Lifetime net across closed games — active players played more than half the games since they joined",
+    "subtitleThreshold": "Lifetime net across closed games — active players played more than {pct}% of the games since they joined",
     "rank": "#",
     "player": "Player",
     "total": "Total",
     "empty": "No closed games yet — standings will show once games finish.",
+    "inactiveTitle": "Inactive players ({count})",
+    "allInactive": "No active players right now — everyone is listed under inactive players below.",
     "careerLink": "Your own history → Career"
   },
   "common": {
