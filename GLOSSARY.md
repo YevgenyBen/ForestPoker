@@ -19,7 +19,7 @@ The ranking of players by lifetime net across all closed games.
 _Avoid_: Leaderboard, season standings
 
 **Lifetime net**:
-A player's total buy-outs minus total buy-ins across every closed game they played.
+A player's total buy-outs minus total buy-ins across all closed games.
 _Avoid_: Total winnings, balance
 
 **Active player**:

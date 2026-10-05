@@ -53,12 +53,12 @@ export const leagueSettings = pgTable(
   {
     id: integer("id").primaryKey(),
     /** Share of games (percent) a player must exceed to count as active. */
-    activeThresholdPct: integer("active_threshold_pct").notNull().default(50),
+    activityThresholdPct: integer("activity_threshold_pct").notNull().default(50),
   },
   (t) => [
     check(
-      "league_settings_active_threshold_pct_range",
-      sql`${t.activeThresholdPct} between 1 and 99`
+      "league_settings_activity_threshold_pct_range",
+      sql`${t.activityThresholdPct} between 1 and 99`
     ),
   ]
 );

@@ -659,11 +659,11 @@ export async function getCareerSummary() {
  * career net), split into active and inactive players.
  */
 export async function getLeagueStandings(): Promise<
-  LeagueStandings & { activeThresholdPct: number }
+  LeagueStandings & { activityThresholdPct: number }
 > {
   await requireUser();
 
-  const [{ activeThresholdPct }, closedGames] = await Promise.all([
+  const [{ activityThresholdPct }, closedGames] = await Promise.all([
     getLeagueSettings(),
     db
       .select({
@@ -676,7 +676,7 @@ export async function getLeagueStandings(): Promise<
   ]);
 
   if (closedGames.length === 0) {
-    return { active: [], inactive: [], activeThresholdPct };
+    return { active: [], inactive: [], activityThresholdPct };
   }
 
   const ledgerRows = await db
@@ -694,7 +694,11 @@ export async function getLeagueStandings(): Promise<
       )
     );
 
-  const playerIds = [...new Set(ledgerRows.map((r) => r.userId))];
+  const playerIds = [
+    ...new Set(
+      ledgerRows.filter((r) => r.kind === "buy_in").map((r) => r.userId)
+    ),
+  ];
   const usersRows = playerIds.length
     ? await db
         .select({
@@ -709,8 +713,8 @@ export async function getLeagueStandings(): Promise<
     closedGames,
     ledgerEntries: ledgerRows,
     usernames: new Map(usersRows.map((u) => [u.id, u.username])),
-    activeThresholdPct,
+    activityThresholdPct,
   });
 
-  return { ...standings, activeThresholdPct };
+  return { ...standings, activityThresholdPct };
 }

@@ -12,28 +12,37 @@ function closedOn(id: string, day: number) {
   return { id, closedAt: at, createdAt: at };
 }
 
-/** Usernames in a section, alphabetically: for tests about who is listed, not ranking. */
-function names(rows: { username: string }[]) {
-  return rows.map((r) => r.username).sort();
+/** Closed games g1…gN, closing on consecutive days. */
+function closedGames(count: number) {
+  return Array.from({ length: count }, (_, i) => closedOn(`g${i + 1}`, i + 1));
 }
 
 function buyIn(gameId: string, userId: string, amountNis = 100) {
   return { gameId, userId, kind: "buy_in" as const, amountNis };
 }
 
+function buyOut(gameId: string, userId: string, amountNis: number) {
+  return { gameId, userId, kind: "buy_out" as const, amountNis };
+}
+
+/** Usernames in a section, alphabetically: for tests about who is listed, not ranking. */
+function names(rows: { username: string }[]) {
+  return rows.map((r) => r.username).sort();
+}
+
 describe("league standings", () => {
   it("gives each player their lifetime net: buy-outs minus buy-ins across closed games", () => {
     const standings = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1), closedOn("g2", 2)],
+      closedGames: closedGames(2),
       ledgerEntries: [
-        { gameId: "g1", userId: "u-alice", kind: "buy_in", amountNis: 100 },
-        { gameId: "g1", userId: "u-alice", kind: "buy_out", amountNis: 250 },
-        { gameId: "g2", userId: "u-alice", kind: "buy_in", amountNis: 100 },
-        { gameId: "g1", userId: "u-bob", kind: "buy_in", amountNis: 200 },
-        { gameId: "g2", userId: "u-bob", kind: "buy_out", amountNis: 30 },
+        buyIn("g1", "u-alice", 100),
+        buyOut("g1", "u-alice", 250),
+        buyIn("g2", "u-alice", 100),
+        buyIn("g1", "u-bob", 200),
+        buyOut("g2", "u-bob", 30),
       ],
       usernames,
-      activeThresholdPct: 50,
+      activityThresholdPct: 50,
     });
 
     expect(standings).toEqual({
@@ -42,17 +51,38 @@ describe("league standings", () => {
     });
   });
 
+  it("keeps a player's lifetime net the same whether they are active or inactive", () => {
+    const input = {
+      closedGames: closedGames(4),
+      ledgerEntries: [
+        buyIn("g1", "u-bob", 100),
+        buyOut("g1", "u-bob", 180),
+        buyIn("g2", "u-bob", 100),
+        buyIn("g3", "u-bob", 100),
+      ],
+      usernames,
+    };
+
+    const atHalf = computeLeagueStandings({ ...input, activityThresholdPct: 50 });
+    const atThreeQuarters = computeLeagueStandings({ ...input, activityThresholdPct: 75 });
+
+    expect(atHalf.active).toEqual([{ userId: "u-bob", username: "bob", lifetimeNetNis: -120 }]);
+    expect(atThreeQuarters.inactive).toEqual([
+      { userId: "u-bob", username: "bob", lifetimeNetNis: -120 },
+    ]);
+  });
+
   it("ranks by lifetime net, highest first, breaking ties alphabetically ignoring case", () => {
     const { active } = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1)],
+      closedGames: closedGames(1),
       ledgerEntries: [
-        { gameId: "g1", userId: "u-loser", kind: "buy_in", amountNis: 300 },
-        { gameId: "g1", userId: "u-zed", kind: "buy_in", amountNis: 100 },
-        { gameId: "g1", userId: "u-zed", kind: "buy_out", amountNis: 140 },
-        { gameId: "g1", userId: "u-amy", kind: "buy_in", amountNis: 100 },
-        { gameId: "g1", userId: "u-amy", kind: "buy_out", amountNis: 140 },
-        { gameId: "g1", userId: "u-winner", kind: "buy_in", amountNis: 100 },
-        { gameId: "g1", userId: "u-winner", kind: "buy_out", amountNis: 320 },
+        buyIn("g1", "u-loser", 300),
+        buyIn("g1", "u-zed"),
+        buyOut("g1", "u-zed", 140),
+        buyIn("g1", "u-amy"),
+        buyOut("g1", "u-amy", 140),
+        buyIn("g1", "u-winner"),
+        buyOut("g1", "u-winner", 320),
       ],
       usernames: new Map([
         ["u-loser", "Loser"],
@@ -60,106 +90,15 @@ describe("league standings", () => {
         ["u-amy", "amy"],
         ["u-winner", "Winner"],
       ]),
-      activeThresholdPct: 50,
+      activityThresholdPct: 50,
     });
 
     expect(active.map((r) => r.username)).toEqual(["Winner", "amy", "Zed", "Loser"]);
   });
 
-  it("leaves out players who never bought in, since they never played", () => {
-    const standings = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1)],
-      ledgerEntries: [
-        { gameId: "g1", userId: "u-alice", kind: "buy_in", amountNis: 100 },
-        { gameId: "g1", userId: "u-alice", kind: "buy_out", amountNis: 100 },
-        { gameId: "g1", userId: "u-bob", kind: "buy_out", amountNis: 20 },
-      ],
-      usernames,
-      activeThresholdPct: 50,
-    });
-
-    expect(standings).toEqual({
-      active: [{ userId: "u-alice", username: "alice", lifetimeNetNis: 0 }],
-      inactive: [],
-    });
-  });
-
-  it("treats a guest who played once and missed the next closed game (exactly half) as inactive", () => {
-    const { active, inactive } = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1), closedOn("g2", 2)],
-      ledgerEntries: [buyIn("g1", "u-alice"), buyIn("g2", "u-alice"), buyIn("g1", "u-bob")],
-      usernames,
-      activeThresholdPct: 50,
-    });
-
-    expect(active.map((r) => r.username)).toEqual(["alice"]);
-    expect(inactive.map((r) => r.username)).toEqual(["bob"]);
-  });
-
-  it("treats a player who just played their first closed game as active", () => {
-    const { active } = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1), closedOn("g2", 2)],
-      ledgerEntries: [buyIn("g1", "u-alice"), buyIn("g2", "u-alice"), buyIn("g2", "u-bob")],
-      usernames,
-      activeThresholdPct: 50,
-    });
-
-    expect(names(active)).toEqual(["alice", "bob"]);
-  });
-
-  it("treats a player just over the threshold as active", () => {
-    const { active } = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1), closedOn("g2", 2), closedOn("g3", 3)],
-      ledgerEntries: [buyIn("g1", "u-bob"), buyIn("g3", "u-bob")],
-      usernames,
-      activeThresholdPct: 50,
-    });
-
-    expect(active.map((r) => r.username)).toEqual(["bob"]);
-  });
-
-  it("counts activity from a player's first game, so late joiners are not penalised", () => {
-    const { active } = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1), closedOn("g2", 2), closedOn("g3", 3), closedOn("g4", 4)],
-      ledgerEntries: [
-        buyIn("g1", "u-alice"),
-        buyIn("g2", "u-alice"),
-        buyIn("g3", "u-alice"),
-        buyIn("g4", "u-alice"),
-        buyIn("g3", "u-bob"),
-        buyIn("g4", "u-bob"),
-      ],
-      usernames,
-      activeThresholdPct: 50,
-    });
-
-    expect(names(active)).toEqual(["alice", "bob"]);
-  });
-
-  it("keeps a player who stopped coming active until their share falls to the threshold", () => {
-    const veteran = [buyIn("g1", "u-alice"), buyIn("g2", "u-alice"), buyIn("g3", "u-alice")];
-    const games = [1, 2, 3, 4, 5, 6].map((d) => closedOn(`g${d}`, d));
-
-    const afterFive = computeLeagueStandings({
-      closedGames: games.slice(0, 5),
-      ledgerEntries: veteran,
-      usernames,
-      activeThresholdPct: 50,
-    });
-    const afterSix = computeLeagueStandings({
-      closedGames: games,
-      ledgerEntries: veteran,
-      usernames,
-      activeThresholdPct: 50,
-    });
-
-    expect(afterFive.active.map((r) => r.username)).toEqual(["alice"]);
-    expect(afterSix.inactive.map((r) => r.username)).toEqual(["alice"]);
-  });
-
   it("ranks inactive players by lifetime net too", () => {
     const { inactive } = computeLeagueStandings({
-      closedGames: [closedOn("g1", 1), closedOn("g2", 2), closedOn("g3", 3)],
+      closedGames: closedGames(3),
       ledgerEntries: [
         buyIn("g1", "u-carol", 50),
         buyIn("g1", "u-alice", 300),
@@ -171,10 +110,118 @@ describe("league standings", () => {
         ["u-bob", "Bob"],
         ["u-carol", "carol"],
       ]),
-      activeThresholdPct: 50,
+      activityThresholdPct: 50,
     });
 
     expect(inactive.map((r) => r.username)).toEqual(["Bob", "carol", "alice"]);
+  });
+
+  it("leaves out players who never bought in, since they never played", () => {
+    const standings = computeLeagueStandings({
+      closedGames: closedGames(1),
+      ledgerEntries: [buyIn("g1", "u-alice"), buyOut("g1", "u-alice", 100), buyOut("g1", "u-bob", 20)],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(standings).toEqual({
+      active: [{ userId: "u-alice", username: "alice", lifetimeNetNis: 0 }],
+      inactive: [],
+    });
+  });
+
+  it("does not count a game as played when the player only has a buy-out in it", () => {
+    const { inactive } = computeLeagueStandings({
+      closedGames: closedGames(3),
+      ledgerEntries: [buyIn("g1", "u-bob"), buyOut("g2", "u-bob", 40)],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(inactive).toEqual([{ userId: "u-bob", username: "bob", lifetimeNetNis: -60 }]);
+  });
+
+  it("makes a player who played their only closed game so far an active player", () => {
+    const { active } = computeLeagueStandings({
+      closedGames: closedGames(2),
+      ledgerEntries: [buyIn("g1", "u-alice"), buyIn("g2", "u-alice"), buyIn("g2", "u-bob")],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(names(active)).toEqual(["alice", "bob"]);
+  });
+
+  it("makes a player who played exactly the threshold share an inactive player", () => {
+    const { active, inactive } = computeLeagueStandings({
+      closedGames: closedGames(2),
+      ledgerEntries: [buyIn("g1", "u-alice"), buyIn("g2", "u-alice"), buyIn("g1", "u-bob")],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(names(active)).toEqual(["alice"]);
+    expect(names(inactive)).toEqual(["bob"]);
+  });
+
+  it("makes a player just over the threshold share an active player", () => {
+    const { active } = computeLeagueStandings({
+      closedGames: closedGames(3),
+      ledgerEntries: [buyIn("g1", "u-bob"), buyIn("g3", "u-bob")],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(names(active)).toEqual(["bob"]);
+  });
+
+  it("counts only the closed games held since the player's first played game", () => {
+    const { active } = computeLeagueStandings({
+      closedGames: closedGames(4),
+      ledgerEntries: [
+        buyIn("g1", "u-alice"),
+        buyIn("g2", "u-alice"),
+        buyIn("g3", "u-alice"),
+        buyIn("g4", "u-alice"),
+        buyIn("g3", "u-bob"),
+        buyIn("g4", "u-bob"),
+      ],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(names(active)).toEqual(["alice", "bob"]);
+  });
+
+  it("keeps an active player active after missed games until their share falls to the threshold", () => {
+    const playedFirstThree = [buyIn("g1", "u-alice"), buyIn("g2", "u-alice"), buyIn("g3", "u-alice")];
+
+    const afterFive = computeLeagueStandings({
+      closedGames: closedGames(5),
+      ledgerEntries: playedFirstThree,
+      usernames,
+      activityThresholdPct: 50,
+    });
+    const afterSix = computeLeagueStandings({
+      closedGames: closedGames(6),
+      ledgerEntries: playedFirstThree,
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    expect(names(afterFive.active)).toEqual(["alice"]);
+    expect(names(afterSix.inactive)).toEqual(["alice"]);
+  });
+
+  it("applies the league's activity threshold", () => {
+    const input = {
+      closedGames: closedGames(4),
+      ledgerEntries: [buyIn("g1", "u-bob"), buyIn("g2", "u-bob"), buyIn("g3", "u-bob")],
+      usernames,
+    };
+
+    expect(names(computeLeagueStandings({ ...input, activityThresholdPct: 50 }).active)).toEqual(["bob"]);
+    expect(names(computeLeagueStandings({ ...input, activityThresholdPct: 75 }).inactive)).toEqual(["bob"]);
   });
 
   it("orders closed games by close time, falling back to creation time", () => {
@@ -183,21 +230,10 @@ describe("league standings", () => {
       closedGames: [late, closedOn("g2", 2), closedOn("g1", 1)],
       ledgerEntries: [buyIn("g-late", "u-bob")],
       usernames,
-      activeThresholdPct: 50,
+      activityThresholdPct: 50,
     });
 
-    expect(active.map((r) => r.username)).toEqual(["bob"]);
-  });
-
-  it("applies the league's activity threshold", () => {
-    const input = {
-      closedGames: [1, 2, 3, 4].map((d) => closedOn(`g${d}`, d)),
-      ledgerEntries: [buyIn("g1", "u-bob"), buyIn("g2", "u-bob"), buyIn("g3", "u-bob")],
-      usernames,
-    };
-
-    expect(names(computeLeagueStandings({ ...input, activeThresholdPct: 50 }).active)).toEqual(["bob"]);
-    expect(names(computeLeagueStandings({ ...input, activeThresholdPct: 75 }).inactive)).toEqual(["bob"]);
+    expect(names(active)).toEqual(["bob"]);
   });
 
   it("is empty when there are no closed games", () => {
@@ -206,7 +242,7 @@ describe("league standings", () => {
         closedGames: [],
         ledgerEntries: [],
         usernames: new Map(),
-        activeThresholdPct: 50,
+        activityThresholdPct: 50,
       })
     ).toEqual({ active: [], inactive: [] });
   });

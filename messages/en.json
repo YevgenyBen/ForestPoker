@@ -141,8 +141,8 @@
   },
   "league": {
     "title": "League",
-    "subtitle": "Lifetime net across closed games — active players played more than half the games since they joined",
-    "subtitleThreshold": "Lifetime net across closed games — active players played more than {pct}% of the games since they joined",
+    "subtitle": "Lifetime net across closed games — active players played more than half the closed games since their first one",
+    "subtitleThreshold": "Lifetime net across closed games — active players played more than {pct}% of the closed games since their first one",
     "rank": "#",
     "player": "Player",
     "total": "Total",

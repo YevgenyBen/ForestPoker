@@ -1,8 +1,5 @@
 import { computeNetByUser } from "@/lib/settlement";
 
-/** Activity threshold used until the league sets its own. */
-export const DEFAULT_ACTIVE_THRESHOLD_PCT = 50;
-
 export type StandingsClosedGame = {
   id: string;
   closedAt: Date | null;
@@ -30,7 +27,7 @@ export type LeagueStandings = {
 /**
  * League standings across closed games, split into active and inactive players.
  * Only players who bought in at least once have played, so only they are listed.
- * A player is active when they played more than `activeThresholdPct` percent of
+ * A player is active when they played more than `activityThresholdPct` percent of
  * the closed games held since the first closed game they played (inclusive).
  * Activity never changes lifetime net.
  */
@@ -38,25 +35,25 @@ export function computeLeagueStandings(input: {
   closedGames: StandingsClosedGame[];
   ledgerEntries: StandingsLedgerEntry[];
   usernames: Map<string, string>;
-  activeThresholdPct: number;
+  activityThresholdPct: number;
 }): LeagueStandings {
-  const order = closedGameOrder(input.closedGames);
+  const positionByGameId = closedGamePositions(input.closedGames);
   const net = computeNetByUser(input.ledgerEntries);
 
-  const playedGameIndexes = new Map<string, Set<number>>();
+  const playedPositions = new Map<string, Set<number>>();
   for (const e of input.ledgerEntries) {
-    const index = order.get(e.gameId);
-    if (e.kind !== "buy_in" || index === undefined) continue;
-    const played = playedGameIndexes.get(e.userId) ?? new Set<number>();
-    played.add(index);
-    playedGameIndexes.set(e.userId, played);
+    const position = positionByGameId.get(e.gameId);
+    if (e.kind !== "buy_in" || position === undefined) continue;
+    const played = playedPositions.get(e.userId) ?? new Set<number>();
+    played.add(position);
+    playedPositions.set(e.userId, played);
   }
 
   const standings: LeagueStandings = { active: [], inactive: [] };
-  for (const [userId, played] of playedGameIndexes) {
-    const eligibleGames = order.size - Math.min(...played);
+  for (const [userId, played] of playedPositions) {
+    const eligibleGameCount = positionByGameId.size - Math.min(...played);
     const isActive =
-      played.size * 100 > input.activeThresholdPct * eligibleGames;
+      played.size * 100 > input.activityThresholdPct * eligibleGameCount;
     (isActive ? standings.active : standings.inactive).push({
       userId,
       username: input.usernames.get(userId) ?? userId,
@@ -69,7 +66,7 @@ export function computeLeagueStandings(input: {
 }
 
 /** Position of each closed game in close order (falling back to creation time). */
-function closedGameOrder(closedGames: StandingsClosedGame[]) {
+function closedGamePositions(closedGames: StandingsClosedGame[]) {
   const at = (g: StandingsClosedGame) =>
     (g.closedAt ?? g.createdAt).getTime();
   const sorted = [...closedGames].sort((a, b) => at(a) - at(b));

@@ -7,86 +7,8 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { ltrAlignText } from "@/lib/ltrText";
 import type { LeagueStandingRow } from "@/lib/leagueStandings";
 
-export default async function LeaguePage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  const v = await getViewer();
-  if (v.kind === "guest") redirect(`/${locale}/login`);
-  if (v.kind === "needs_onboarding") redirect(`/${locale}/onboarding`);
-
-  const viewerId = v.kind === "member" ? v.user.id : null;
-
-  const t = await getTranslations("league");
-  const { active, inactive, activeThresholdPct } = await getLeagueStandings();
-
-  const money = (n: number) =>
-    new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-IL", {
-      style: "currency",
-      currency: "ILS",
-      maximumFractionDigits: 0,
-    }).format(n);
-
-  const tableProps = {
-    viewerId,
-    money,
-    labels: { rank: t("rank"), player: t("player"), total: t("total") },
-  };
-
-  return (
-    <main className="flex flex-1 flex-col gap-6">
-      <header className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--fp-ink)]">{t("title")}</h1>
-          <p className="text-sm text-[var(--fp-secondary)]">
-            {activeThresholdPct === 50
-              ? t("subtitle")
-              : t("subtitleThreshold", { pct: activeThresholdPct })}
-          </p>
-        </div>
-        <LocaleSwitcher />
-      </header>
-
-      {active.length === 0 && inactive.length === 0 ? (
-        <p className="rounded-xl bg-[var(--fp-parchment)]/60 px-4 py-8 text-center text-[var(--fp-secondary)]">
-          {t("empty")}
-        </p>
-      ) : (
-        <>
-          {active.length === 0 ? (
-            <p className="rounded-xl bg-[var(--fp-parchment)]/60 px-4 py-8 text-center text-[var(--fp-secondary)]">
-              {t("allInactive")}
-            </p>
-          ) : (
-            <StandingsTable rows={active} ranked {...tableProps} />
-          )}
-
-          {inactive.length > 0 && (
-            <details>
-              <summary className="cursor-pointer select-none text-sm font-semibold text-[var(--fp-secondary)] hover:text-[var(--fp-ink)]">
-                {t("inactiveTitle", { count: inactive.length })}
-              </summary>
-              <div className="mt-3">
-                <StandingsTable rows={inactive} ranked={false} {...tableProps} />
-              </div>
-            </details>
-          )}
-        </>
-      )}
-
-      <p className="text-center text-sm text-[var(--fp-secondary)]">
-        <Link
-          href={`/${locale}/career`}
-          className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
-        >
-          {t("careerLink")}
-        </Link>
-      </p>
-    </main>
-  );
-}
+const NOTICE_CLASS =
+  "rounded-xl bg-[var(--fp-parchment)]/60 px-4 py-8 text-center text-[var(--fp-secondary)]";
 
 function StandingsTable({
   rows,
@@ -160,5 +82,86 @@ function StandingsTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+export default async function LeaguePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const v = await getViewer();
+  if (v.kind === "guest") redirect(`/${locale}/login`);
+  if (v.kind === "needs_onboarding") redirect(`/${locale}/onboarding`);
+
+  const viewerId = v.kind === "member" ? v.user.id : null;
+
+  const t = await getTranslations("league");
+  const { active, inactive, activityThresholdPct } = await getLeagueStandings();
+
+  const money = (n: number) =>
+    new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-IL", {
+      style: "currency",
+      currency: "ILS",
+      maximumFractionDigits: 0,
+    }).format(n);
+
+  const tableProps = {
+    viewerId,
+    money,
+    labels: { rank: t("rank"), player: t("player"), total: t("total") },
+  };
+
+  return (
+    <main className="flex flex-1 flex-col gap-6">
+      <header className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--fp-ink)]">{t("title")}</h1>
+          <p className="text-sm text-[var(--fp-secondary)]">
+            {activityThresholdPct === 50
+              ? t("subtitle")
+              : t("subtitleThreshold", { pct: activityThresholdPct })}
+          </p>
+        </div>
+        <LocaleSwitcher />
+      </header>
+
+      {active.length === 0 && inactive.length === 0 ? (
+        <p className={NOTICE_CLASS}>
+          {t("empty")}
+        </p>
+      ) : (
+        <>
+          {active.length === 0 ? (
+            <p className={NOTICE_CLASS}>
+              {t("allInactive")}
+            </p>
+          ) : (
+            <StandingsTable rows={active} ranked {...tableProps} />
+          )}
+
+          {inactive.length > 0 && (
+            <details>
+              <summary className="cursor-pointer select-none text-sm font-semibold text-[var(--fp-secondary)] hover:text-[var(--fp-ink)]">
+                {t("inactiveTitle", { count: inactive.length })}
+              </summary>
+              <div className="mt-3">
+                <StandingsTable rows={inactive} ranked={false} {...tableProps} />
+              </div>
+            </details>
+          )}
+        </>
+      )}
+
+      <p className="text-center text-sm text-[var(--fp-secondary)]">
+        <Link
+          href={`/${locale}/career`}
+          className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
+        >
+          {t("careerLink")}
+        </Link>
+      </p>
+    </main>
   );
 }
