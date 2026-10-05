@@ -50,3 +50,6 @@ firestore-debug.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code browser-pane dev server config (local only)
+.claude/launch.json
