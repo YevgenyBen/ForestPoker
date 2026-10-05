@@ -31,7 +31,7 @@ import { getLeagueSettings } from "@/lib/leagueSettings";
 import { notifyGameSettlements } from "@/lib/whatsapp/notifyGameSettlements";
 import { safeConsoleError } from "@/lib/logSafeError";
 import { bumpSyncVersion } from "@/lib/sync/bump";
-import { notVoided } from "@/lib/ledger";
+import { latestLiveEntry, liveLedgerEntries } from "@/lib/ledger";
 import { formatDateDdMmYyyy, parseScheduledCalendarDate } from "@/lib/formatDate";
 
 const amountSchema = z.coerce.number().int().positive();
@@ -214,32 +214,6 @@ export async function addLedgerEntry(input: {
   return { ok: true as const };
 }
 
-/** The player's most recent ledger entry in a game that hasn't been undone. */
-async function latestLiveEntry(
-  tx: Pick<typeof db, "select">,
-  gameId: string,
-  userId: string
-) {
-  const [entry] = await tx
-    .select({
-      id: ledgerEntries.id,
-      kind: ledgerEntries.kind,
-      amountNis: ledgerEntries.amountNis,
-      recordedAt: ledgerEntries.recordedAt,
-    })
-    .from(ledgerEntries)
-    .where(
-      and(
-        eq(ledgerEntries.gameId, gameId),
-        eq(ledgerEntries.userId, userId),
-        notVoided
-      )
-    )
-    .orderBy(desc(ledgerEntries.recordedAt), desc(ledgerEntries.id))
-    .limit(1);
-  return entry ?? null;
-}
-
 /**
  * Undo the player's own most recent live entry in an open game. `entryId` is the
  * entry the player was shown; if it is no longer their latest live entry (e.g. a
@@ -317,14 +291,7 @@ export async function closeGame(gameId: string) {
         .limit(1);
       if (!member) throw new Error("not_member");
 
-      const ledger = await tx
-        .select({
-          userId: ledgerEntries.userId,
-          kind: ledgerEntries.kind,
-          amountNis: ledgerEntries.amountNis,
-        })
-        .from(ledgerEntries)
-        .where(and(eq(ledgerEntries.gameId, gameId), notVoided));
+      const ledger = await liveLedgerEntries(tx, { gameIds: [gameId] });
 
       const netByUser = computeNetByUser(ledger);
       const sum = netSum(netByUser);
@@ -510,14 +477,7 @@ export async function getGameDetail(gameId: string) {
     amountNis: number;
   }[] = [];
   if (game.status !== "scheduled") {
-    ledgerRows = await db
-      .select({
-        userId: ledgerEntries.userId,
-        kind: ledgerEntries.kind,
-        amountNis: ledgerEntries.amountNis,
-      })
-      .from(ledgerEntries)
-      .where(and(eq(ledgerEntries.gameId, gameId), notVoided));
+    ledgerRows = await liveLedgerEntries(db, { gameIds: [gameId] });
   }
 
   const buyInByUser = new Map<string, number>();
@@ -685,20 +645,10 @@ export async function getCareerSummary() {
     .from(games)
     .where(and(inArray(games.id, gameIds), eq(games.status, "closed")));
 
-  const ledgerForUser = await db
-    .select({
-      gameId: ledgerEntries.gameId,
-      kind: ledgerEntries.kind,
-      amountNis: ledgerEntries.amountNis,
-    })
-    .from(ledgerEntries)
-    .where(
-      and(
-        eq(ledgerEntries.userId, user.id),
-        inArray(ledgerEntries.gameId, gameIds),
-        notVoided
-      )
-    );
+  const ledgerForUser = await liveLedgerEntries(db, {
+    gameIds,
+    userId: user.id,
+  });
 
   const netByGame = new Map<string, number>();
   for (const row of ledgerForUser) {
@@ -760,23 +710,9 @@ export async function getLeagueStandings(): Promise<
     return { active: [], inactive: [], activityThresholdPct };
   }
 
-  const ledgerRows = await db
-    .select({
-      gameId: ledgerEntries.gameId,
-      userId: ledgerEntries.userId,
-      kind: ledgerEntries.kind,
-      amountNis: ledgerEntries.amountNis,
-    })
-    .from(ledgerEntries)
-    .where(
-      and(
-        inArray(
-          ledgerEntries.gameId,
-          closedGames.map((g) => g.id)
-        ),
-        notVoided
-      )
-    );
+  const ledgerRows = await liveLedgerEntries(db, {
+    gameIds: closedGames.map((g) => g.id),
+  });
 
   const playerIds = [
     ...new Set(

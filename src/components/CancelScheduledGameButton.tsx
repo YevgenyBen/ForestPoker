@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { cancelScheduledGame } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
 import { Spinner } from "@/components/Spinner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type Props = {
   gameId: string;
@@ -20,11 +21,16 @@ export function CancelScheduledGameButton({ gameId, compact }: Props) {
   const router = useRouter();
   const { pending, run } = useActionRefresh();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
-  async function handleCancel(e: MouseEvent<HTMLButtonElement>) {
+  function askToCancel(e: MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(t("cancelGameConfirm"))) return;
+    setConfirming(true);
+  }
+
+  async function handleCancel() {
+    setConfirming(false);
     setError(null);
     const ok = await run(async () => {
       const res = await cancelScheduledGame(gameId);
@@ -46,7 +52,7 @@ export function CancelScheduledGameButton({ gameId, compact }: Props) {
     <div className={compact ? "flex flex-col items-end gap-1" : "space-y-2"}>
       <button
         type="button"
-        onClick={handleCancel}
+        onClick={askToCancel}
         disabled={pending}
         className={
           compact
@@ -64,6 +70,14 @@ export function CancelScheduledGameButton({ gameId, compact }: Props) {
           {error}
         </p>
       )}
+      <ConfirmDialog
+        open={confirming}
+        message={t("cancelGameConfirm")}
+        confirmLabel={t("cancelGameConfirmAction")}
+        cancelLabel={t("keepGame")}
+        onConfirm={() => void handleCancel()}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   );
 }
