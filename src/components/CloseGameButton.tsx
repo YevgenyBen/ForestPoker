@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { closeGame } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
 import { Spinner } from "@/components/Spinner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type Props = {
   gameId: string;
@@ -16,9 +17,10 @@ export function CloseGameButton({ gameId, disabled }: Props) {
   const tCommon = useTranslations("common");
   const { pending, run } = useActionRefresh();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   async function handleClose() {
-    if (!confirm(t("closeConfirm"))) return;
+    setConfirming(false);
     setError(null);
     await run(async () => {
       const res = await closeGame(gameId);
@@ -42,7 +44,7 @@ export function CloseGameButton({ gameId, disabled }: Props) {
     <div className="space-y-2">
       <button
         type="button"
-        onClick={() => void handleClose()}
+        onClick={() => setConfirming(true)}
         disabled={disabled || pending}
         className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--fp-loss)] bg-transparent font-semibold text-[var(--fp-loss)] disabled:opacity-50"
       >
@@ -50,6 +52,14 @@ export function CloseGameButton({ gameId, disabled }: Props) {
         {pending ? tCommon("loading") : t("closeGame")}
       </button>
       {error && <p className="text-sm text-[var(--fp-loss)]">{error}</p>}
+      <ConfirmDialog
+        open={confirming}
+        message={t("closeConfirm")}
+        confirmLabel={t("closeGame")}
+        cancelLabel={t("closeKeepPlaying")}
+        onConfirm={() => void handleClose()}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   );
 }

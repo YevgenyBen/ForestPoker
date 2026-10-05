@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { deleteGame } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
 import { Spinner } from "@/components/Spinner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type Props = {
   gameId: string;
@@ -21,11 +22,16 @@ export function DeleteGameButton({ gameId, compact }: Props) {
   const router = useRouter();
   const { pending, run } = useActionRefresh();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
-  async function handleDelete(e: MouseEvent<HTMLButtonElement>) {
+  function askToDelete(e: MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(t("deleteGameConfirm"))) return;
+    setConfirming(true);
+  }
+
+  async function handleDelete() {
+    setConfirming(false);
     setError(null);
     const ok = await run(async () => {
       const res = await deleteGame(gameId);
@@ -46,7 +52,7 @@ export function DeleteGameButton({ gameId, compact }: Props) {
     <div className={compact ? "flex flex-col items-end gap-1" : "space-y-2"}>
       <button
         type="button"
-        onClick={handleDelete}
+        onClick={askToDelete}
         disabled={pending}
         className={
           compact
@@ -64,6 +70,14 @@ export function DeleteGameButton({ gameId, compact }: Props) {
           {error}
         </p>
       )}
+      <ConfirmDialog
+        open={confirming}
+        message={t("deleteGameConfirm")}
+        confirmLabel={t("deleteGameConfirmAction")}
+        cancelLabel={t("keepGame")}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   );
 }
