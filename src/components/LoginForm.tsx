@@ -360,15 +360,17 @@ export function LoginForm() {
         {googleLoading ? tCommon("loading") : t("google")}
       </button>
 
-      <div className="relative text-center text-xs text-[var(--fp-secondary)]">
-        <span className="bg-[var(--fp-panel)] px-2">{t("orEmail")}</span>
-        <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-[var(--fp-parchment)]" />
+      <div className="flex items-center gap-3 text-xs text-[var(--fp-secondary)]">
+        <span aria-hidden className="h-px flex-1 bg-[var(--fp-wood-mid)]/35" />
+        <span>{t("orEmail")}</span>
+        <span aria-hidden className="h-px flex-1 bg-[var(--fp-wood-mid)]/35" />
       </div>
 
       <form onSubmit={handleEmailSubmit} className="space-y-4" aria-busy={isBusy}>
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--fp-ink)]">{t("email")}</label>
+          <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-[var(--fp-ink)]">{t("email")}</label>
           <input
+            id="login-email"
             type="email"
             autoComplete="email"
             value={email}
@@ -380,8 +382,9 @@ export function LoginForm() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--fp-ink)]">{t("password")}</label>
+          <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-[var(--fp-ink)]">{t("password")}</label>
           <input
+            id="login-password"
             type="password"
             autoComplete={mode === "register" ? "new-password" : "current-password"}
             value={password}
@@ -395,7 +398,7 @@ export function LoginForm() {
         </div>
         {error && (
           <p
-            className="rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-loss)]"
+            className="rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-loss-ink)]"
             role="alert"
           >
             {error}
@@ -424,12 +427,12 @@ export function LoginForm() {
         </button>
       </form>
 
-      <div className="flex flex-col gap-2 text-center text-sm">
+      <div className="-my-2 flex flex-col text-center text-sm">
         <button
           type="button"
           onClick={() => setMode(mode === "signin" ? "register" : "signin")}
           disabled={isBusy}
-          className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-11 self-center px-2 font-medium text-[var(--fp-brass-ink)] underline decoration-[var(--fp-brass-ink)]/70 underline-offset-[5px] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {mode === "signin" ? t("needAccount") : t("haveAccount")}
         </button>
@@ -438,7 +441,7 @@ export function LoginForm() {
             type="button"
             onClick={handleForgot}
             disabled={isBusy}
-            className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 self-center px-2 font-medium text-[var(--fp-brass-ink)] underline decoration-[var(--fp-brass-ink)]/70 underline-offset-[5px] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("forgot")}
           </button>

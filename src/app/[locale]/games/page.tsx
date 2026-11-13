@@ -14,10 +14,11 @@ import { DeleteGameButton } from "@/components/DeleteGameButton";
 import { CreateGameForm } from "@/components/CreateGameForm";
 import { DbSync } from "@/components/DbSync";
 import { LocationWazeLink } from "@/components/LocationWazeLink";
-import { localizeGameTitle } from "@/lib/gameTitle";
+import { localizeGameTitle, parseStoredGameTitle } from "@/lib/gameTitle";
 import {
   formatDateDdMmYyyy,
   formatDateTimeDdMmYyyyHm,
+  formatTimeHm,
 } from "@/lib/formatDate";
 
 function GameRow({
@@ -35,10 +36,10 @@ function GameRow({
 }) {
   const rowClass =
     g.status === "scheduled"
-      ? "flex items-stretch gap-2 rounded-xl border-2 border-[var(--fp-brass)] bg-[var(--fp-panel)] transition hover:bg-[var(--fp-brass)]/8"
+      ? "flex items-stretch gap-2 rounded-xl border-2 fp-row border-[var(--fp-brass)] bg-[var(--fp-panel)] transition hover:bg-[var(--fp-brass)]/8"
       : g.status === "open"
-        ? "flex items-stretch gap-2 rounded-xl border-2 border-[var(--fp-win)] bg-[var(--fp-panel)] transition hover:bg-[var(--fp-win)]/8"
-        : "flex items-stretch gap-2 rounded-xl border-2 border-[var(--fp-wood-mid)]/25 bg-[var(--fp-panel)] transition hover:bg-[var(--fp-parchment)]";
+        ? "flex items-stretch gap-2 rounded-xl border-2 fp-row border-[var(--fp-win-ink)] bg-[var(--fp-panel)] transition hover:bg-[var(--fp-win)]/8"
+        : "flex items-stretch gap-2 rounded-xl border-2 fp-row border-[var(--fp-wood-mid)]/25 bg-[var(--fp-panel)] transition hover:bg-[var(--fp-parchment)]";
 
   const statusText =
     g.status === "scheduled"
@@ -49,9 +50,9 @@ function GameRow({
 
   const statusClass =
     g.status === "scheduled"
-      ? "text-[var(--fp-brass)]"
+      ? "text-[var(--fp-brass-ink)]"
       : g.status === "open"
-        ? "text-[var(--fp-win)]"
+        ? "text-[var(--fp-win-ink)]"
         : "text-[var(--fp-secondary)]";
 
   return (
@@ -63,7 +64,8 @@ function GameRow({
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <Link
               href={`/${locale}/games/${g.id}`}
-              className="min-w-0 flex-1 font-medium text-[var(--fp-ink)] after:absolute after:inset-0 after:content-['']"
+              data-row-link
+              className="min-w-0 flex-1 font-medium text-[var(--fp-ink)] focus-visible:outline-none after:absolute after:inset-0 after:content-['']"
               dir="auto"
             >
               {localizeGameTitle(g.title, (parts) => t("gameTitle", parts))}
@@ -72,7 +74,10 @@ function GameRow({
               <span className="flex shrink-0 items-center gap-2 text-sm">
                 <span className={statusClass}>{statusText}</span>
                 <span className="text-[var(--fp-secondary)]">
-                  {formatDateTimeDdMmYyyyHm(g.createdAt)}
+                  {/* The title already carries the date; repeat only what it lacks. */}
+                  {parseStoredGameTitle(g.title)?.date === formatDateDdMmYyyy(g.createdAt)
+                    ? formatTimeHm(g.createdAt)
+                    : formatDateTimeDdMmYyyyHm(g.createdAt)}
                 </span>
               </span>
             )}
@@ -137,9 +142,9 @@ function Section({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fp-secondary)]">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--fp-secondary)]">
         {title}
-      </h3>
+      </h2>
       {children ? (
         children
       ) : (

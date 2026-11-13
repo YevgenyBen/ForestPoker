@@ -53,7 +53,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     >
       <body className="min-h-dvh bg-[var(--fp-bg)] text-[var(--fp-ink)] antialiased">
         <NextIntlClientProvider messages={messages}>
-          <div className="mx-auto flex min-h-dvh max-w-lg flex-col pb-24 pt-4 px-4">
+          <div className="mx-auto flex min-h-dvh max-w-lg flex-col pt-4 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
             {children}
           </div>
           <BottomNav />

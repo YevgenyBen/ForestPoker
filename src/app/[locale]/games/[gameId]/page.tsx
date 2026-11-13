@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { formatNis } from "@/lib/formatMoney";
 import { getGameDetail } from "@/actions/games";
 import { getViewer } from "@/lib/auth/session";
 import { canDeleteGames } from "@/lib/auth/gameAdmin";
@@ -15,6 +16,7 @@ import { LocationWazeLink } from "@/components/LocationWazeLink";
 import { GameRsvpPanel } from "@/components/GameRsvpPanel";
 import { ActionRefreshBoundary } from "@/components/ActionRefreshBoundary";
 import { DbSync } from "@/components/DbSync";
+import { LiveAmount } from "@/components/LiveAmount";
 import {
   formatDateDdMmYyyy,
   formatDateTimeDdMmYyyyHm,
@@ -58,12 +60,7 @@ export default async function GameDetailPage({
     (isHost || canDeleteGames(v.user.email));
   const t = await getTranslations("games");
 
-  const money = (n: number) =>
-    new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-IL", {
-      style: "currency",
-      currency: "ILS",
-      maximumFractionDigits: 0,
-    }).format(n);
+  const money = (n: number) => formatNis(locale, n);
 
   return (
     <main className="flex flex-1 flex-col gap-6 pb-4">
@@ -72,7 +69,7 @@ export default async function GameDetailPage({
         <div>
           <Link
             href={`/${locale}/games`}
-            className="text-sm font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
+            className="fp-tap text-sm font-medium text-[var(--fp-brass-ink)] underline decoration-[var(--fp-brass-ink)]/70 underline-offset-[5px] hover:brightness-110"
           >
             {locale === "he" ? "→" : "←"} {t("title")}
           </Link>
@@ -140,7 +137,7 @@ export default async function GameDetailPage({
             <h2 className="font-semibold text-[var(--fp-ink)]">{t("rsvpPlayersHeading")}</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-[var(--fp-win)]/35 bg-[var(--fp-win)]/6 p-3">
-                <h3 className="mb-2 text-sm font-semibold text-[var(--fp-win)]">
+                <h3 className="mb-2 text-sm font-semibold text-[var(--fp-win-ink)]">
                   {t("rsvpComingList")}
                 </h3>
                 {rsvp.yes.length === 0 ? (
@@ -156,7 +153,7 @@ export default async function GameDetailPage({
                 )}
               </div>
               <div className="rounded-xl border border-[var(--fp-brass)]/35 bg-[var(--fp-brass)]/8 p-3">
-                <h3 className="mb-2 text-sm font-semibold text-[var(--fp-brass)]">
+                <h3 className="mb-2 text-sm font-semibold text-[var(--fp-brass-ink)]">
                   {t("rsvpMaybeList")}
                 </h3>
                 {rsvp.maybe.length === 0 ? (
@@ -244,13 +241,13 @@ export default async function GameDetailPage({
                         className="py-0.5 text-end tabular-nums font-semibold text-[var(--fp-ink)]"
                         dir="ltr"
                       >
-                        {money(m.buyInTotalNis)}
+                        <LiveAmount value={m.buyInTotalNis} locale={locale} />
                       </td>
                       <td
                         className="py-0.5 text-end tabular-nums font-semibold text-[var(--fp-ink)]"
                         dir="ltr"
                       >
-                        {money(m.buyOutTotalNis)}
+                        <LiveAmount value={m.buyOutTotalNis} locale={locale} />
                       </td>
                     </tr>
                   ))}
@@ -268,14 +265,14 @@ export default async function GameDetailPage({
                 <span className="text-sm font-semibold text-[var(--fp-ink)]">
                   {t("bank")}
                 </span>
-                <span
+                <LiveAmount
+                  value={bankNis}
+                  locale={locale}
+                  roll
                   className={`text-lg font-bold tabular-nums ${
-                    bankNis >= 0 ? "text-[var(--fp-moss)]" : "text-[var(--fp-loss)]"
+                    bankNis >= 0 ? "text-[var(--fp-moss-ink)]" : "text-[var(--fp-loss-ink)]"
                   }`}
-                  dir="ltr"
-                >
-                  {money(bankNis)}
-                </span>
+                />
               </div>
             </section>
           )}
@@ -320,7 +317,7 @@ export default async function GameDetailPage({
 
       {canDeleteGame && !isScheduled && (
         <section className="rounded-xl border border-[var(--fp-loss)]/35 bg-[var(--fp-loss)]/5 p-4">
-          <p className="mb-3 text-sm leading-snug text-[var(--fp-loss)]">
+          <p className="mb-3 text-sm leading-snug text-[var(--fp-loss-ink)]">
             {t("deleteGameWarning")}
           </p>
           <DeleteGameButton gameId={gameId} />

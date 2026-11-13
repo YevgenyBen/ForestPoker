@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { formatNis } from "@/lib/formatMoney";
 import { getCareerSummary } from "@/actions/games";
 import { getViewer } from "@/lib/auth/session";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -22,12 +23,7 @@ export default async function CareerPage({
   const tGames = await getTranslations("games");
   const { lifetimeNis, rows } = await getCareerSummary();
 
-  const money = (n: number) =>
-    new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-IL", {
-      style: "currency",
-      currency: "ILS",
-      maximumFractionDigits: 0,
-    }).format(n);
+  const money = (n: number) => formatNis(locale, n);
 
   const df = (d: Date | null) =>
     d ? formatDateDdMmYyyy(d) : "—";
@@ -58,14 +54,14 @@ export default async function CareerPage({
       <div
         className={`rounded-2xl border-2 px-4 py-6 text-center ${
           lifetimeNis >= 0
-            ? "border-[var(--fp-win)] bg-[var(--fp-win)]/10"
-            : "border-[var(--fp-loss)] bg-[var(--fp-loss)]/10"
+            ? "border-[var(--fp-win-ink)] bg-[var(--fp-win)]/10"
+            : "border-[var(--fp-loss-ink)] bg-[var(--fp-loss)]/10"
         }`}
       >
         <p className="text-sm font-medium opacity-80">{t("lifetime")}</p>
         <p
           className={`mt-1 text-3xl font-bold tabular-nums ${
-            lifetimeNis >= 0 ? "text-[var(--fp-win)]" : "text-[var(--fp-loss)]"
+            lifetimeNis >= 0 ? "text-[var(--fp-win-ink)]" : "text-[var(--fp-loss-ink)]"
           }`}
           dir="ltr"
         >
@@ -92,7 +88,7 @@ export default async function CareerPage({
                   <span className="flex flex-col items-end gap-0.5">
                     <span
                       className={
-                        r.netNis >= 0 ? "text-[var(--fp-win)]" : "text-[var(--fp-loss)]"
+                        r.netNis >= 0 ? "text-[var(--fp-win-ink)]" : "text-[var(--fp-loss-ink)]"
                       }
                       dir="ltr"
                     >

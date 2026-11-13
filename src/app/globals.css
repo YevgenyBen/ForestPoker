@@ -15,8 +15,22 @@
   --fp-win: #2f7d4a;
   --fp-loss: #9b2e32;
   --fp-sage: #c5d1c3;
+  /**
+   * "-ink" = the text/outline role of a semantic hue. The base tokens above stay fills
+   * (white text sits on them); the ink tokens are tuned to read ≥4.5:1 on bg, panel,
+   * parchment, and their own 12% tints, in each scheme.
+   */
+  --fp-win-ink: #276b3f;
+  --fp-loss-ink: #9b2e32;
+  --fp-moss-ink: #3d6b4f;
+  --fp-brass-ink: #7a5a06;
   /** Hints, meta, subtitles — must stay legible on cream / panel */
   --fp-secondary: #3d2a1f;
+  /** Motion: one decelerating curve; exits use the short duration. */
+  --fp-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --fp-dur-fast: 120ms;
+  --fp-dur: 220ms;
+  --fp-dur-slow: 320ms;
   /** Form controls: solid bg so typed text stays high-contrast vs body --fp-ink */
   --fp-field-bg: #ffffff;
 }
@@ -33,6 +47,10 @@
     --fp-wood-mid: #8a7355;
     --fp-sage: #3d453d;
     --fp-brass: #e4b84a;
+    --fp-win-ink: #6cc08a;
+    --fp-loss-ink: #ef8f8a;
+    --fp-moss-ink: #8cc4a2;
+    --fp-brass-ink: #e4b84a;
     --fp-secondary: #e8dfd2;
     --fp-field-bg: #2c2824;
   }
@@ -48,6 +66,37 @@
 body {
   background: var(--fp-bg);
   color: var(--fp-ink);
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--fp-brass) 35%, transparent);
+  color: var(--fp-ink);
+}
+
+/**
+ * Keyboard focus: one brass ring for every control, drawn outside the element so it
+ * reads on cream, panel, and filled moss/loss buttons alike (≥3:1 against the surface).
+ */
+@layer base {
+  /* In the base layer so Tailwind focus/outline utilities can still override it. */
+  :where(a, button, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--fp-brass-ink);
+    outline-offset: 2px;
+  }
+}
+
+/**
+ * Text links that sit alone (locale switch, back link): grow the tap area to ~44px
+ * without moving the layout.
+ */
+.fp-tap {
+  position: relative;
+}
+
+.fp-tap::after {
+  content: "";
+  position: absolute;
+  inset: -12px -8px;
 }
 
 /**
@@ -69,7 +118,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   button:hover:not(:disabled) {
     filter: brightness(1.06);
     transform: translateY(-1px);
@@ -101,7 +150,7 @@ input[type="reset"]:disabled {
   cursor: not-allowed;
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   input[type="submit"]:hover:not(:disabled),
   input[type="button"]:hover:not(:disabled),
   input[type="reset"]:hover:not(:disabled) {
@@ -143,6 +192,148 @@ input[type="reset"]:disabled {
 }
 
 .fp-field:focus {
-  outline: 2px solid color-mix(in srgb, var(--fp-brass) 55%, transparent);
+  outline: 2px solid var(--fp-brass-ink);
   outline-offset: 1px;
+}
+
+/** Game rows use a stretched title link; ring the whole row when that link has keyboard focus. */
+.fp-row:has(a[data-row-link]:focus-visible) {
+  outline: 2px solid var(--fp-brass-ink);
+  outline-offset: 2px;
+}
+
+/** Game rows use a stretched title link; ring the whole row when that link has keyboard focus. */
+.fp-row:has(a[data-row-link]:focus-visible) {
+  outline: 2px solid var(--fp-brass-ink);
+  outline-offset: 2px;
+}
+
+/* ───────────────────────── Motion ─────────────────────────
+ * Every rule here explains a state change. Reduced motion keeps the color/opacity
+ * signals and drops spatial movement (see the block at the end).
+ */
+
+/** Touch has no hover, so give taps their own press acknowledgment. */
+@media (pointer: coarse) {
+  button:active:not(:disabled) {
+    filter: brightness(0.92);
+    transition-duration: 60ms;
+  }
+}
+
+/** Modal dialogs: rise + fade in from the top layer, leave faster than they arrive. */
+dialog.fp-dialog {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity var(--fp-dur-fast) ease-in,
+    transform var(--fp-dur-fast) ease-in,
+    overlay var(--fp-dur-fast) allow-discrete,
+    display var(--fp-dur-fast) allow-discrete;
+}
+
+dialog.fp-dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--fp-dur);
+  transition-timing-function: var(--fp-ease-out);
+}
+
+dialog.fp-dialog::backdrop {
+  background-color: rgb(0 0 0 / 0);
+  transition:
+    background-color var(--fp-dur-fast) ease-in,
+    overlay var(--fp-dur-fast) allow-discrete,
+    display var(--fp-dur-fast) allow-discrete;
+}
+
+dialog.fp-dialog[open]::backdrop {
+  background-color: rgb(0 0 0 / 0.55);
+  transition-duration: var(--fp-dur);
+}
+
+@starting-style {
+  dialog.fp-dialog[open] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  dialog.fp-dialog[open]::backdrop {
+    background-color: rgb(0 0 0 / 0);
+  }
+}
+
+/** Content the user just asked for: a form they opened, an entry they recorded. */
+@keyframes fp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.fp-enter {
+  animation: fp-rise var(--fp-dur-slow) var(--fp-ease-out);
+}
+
+/**
+ * A value changed in front of the user (their own entry, or a live update from another
+ * player): one brass wash that fades out, so the eye finds what moved.
+ */
+@keyframes fp-flash {
+  from {
+    background-color: color-mix(in srgb, var(--fp-brass) 32%, transparent);
+  }
+}
+
+.fp-flash {
+  animation: fp-flash 900ms var(--fp-ease-out);
+  border-radius: 0.375rem;
+}
+
+.fp-flash.fp-enter {
+  animation:
+    fp-rise var(--fp-dur-slow) var(--fp-ease-out),
+    fp-flash 900ms var(--fp-ease-out);
+}
+
+/** Disclosure (inactive players): open to the content height instead of jumping. */
+@supports selector(::details-content) {
+  .fp-disclosure {
+    interpolate-size: allow-keywords;
+  }
+
+  .fp-disclosure::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size var(--fp-dur-slow) var(--fp-ease-out),
+      content-visibility var(--fp-dur-slow) allow-discrete;
+  }
+
+  .fp-disclosure[open]::details-content {
+    block-size: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.fp-dialog,
+  dialog.fp-dialog[open] {
+    transform: none;
+  }
+
+  @starting-style {
+    dialog.fp-dialog[open] {
+      transform: none;
+    }
+  }
+
+  @keyframes fp-rise {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .fp-disclosure::details-content {
+    transition: none;
+  }
 }

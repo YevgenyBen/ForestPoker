@@ -56,8 +56,8 @@ export function DeleteGameButton({ gameId, compact }: Props) {
         disabled={pending}
         className={
           compact
-            ? "inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-[var(--fp-loss)] bg-[var(--fp-loss)]/15 px-3 py-1.5 text-sm font-semibold text-[var(--fp-loss)] disabled:opacity-50"
-            : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--fp-loss)] bg-[var(--fp-loss)]/15 font-semibold text-[var(--fp-loss)] disabled:opacity-50"
+            ? "inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-[var(--fp-loss-ink)] bg-[var(--fp-loss)]/15 px-3 py-1.5 text-sm font-semibold text-[var(--fp-loss-ink)] disabled:opacity-50"
+            : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--fp-loss-ink)] bg-[var(--fp-loss)]/15 font-semibold text-[var(--fp-loss-ink)] disabled:opacity-50"
         }
       >
         {pending && <Spinner className="size-4" />}
@@ -65,7 +65,7 @@ export function DeleteGameButton({ gameId, compact }: Props) {
       </button>
       {error && (
         <p
-          className={`rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 font-medium text-[var(--fp-loss)] ${compact ? "max-w-[min(100%,14rem)] px-2 py-1 text-xs" : "px-3 py-2 text-sm"}`}
+          className={`rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 font-medium text-[var(--fp-loss-ink)] ${compact ? "max-w-[min(100%,14rem)] px-2 py-1 text-xs" : "px-3 py-2 text-sm"}`}
         >
           {error}
         </p>

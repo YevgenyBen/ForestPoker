@@ -37,7 +37,7 @@ export function OpenGameButton({ gameId }: { gameId: string }) {
       {pending && <Spinner className="size-4 text-white" />}
       {pending ? tCommon("loading") : t("openTable")}
     </button>
-    {error && <p className="text-sm text-[var(--fp-loss)]" role="alert">{error}</p>}
+    {error && <p className="text-sm text-[var(--fp-loss-ink)]" role="alert">{error}</p>}
     </div>
   );
 }

@@ -44,7 +44,7 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
-      className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[var(--fp-wood-mid)]/30 bg-[var(--fp-panel)] p-0 text-[var(--fp-ink)] shadow-xl backdrop:bg-black/50"
+      className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[var(--fp-wood-mid)]/30 bg-[var(--fp-panel)] p-0 text-[var(--fp-ink)] shadow-xl fp-dialog"
     >
       <div className="space-y-4 p-5">
         <p className="text-base font-semibold" dir="auto">

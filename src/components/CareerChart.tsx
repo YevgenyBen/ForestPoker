@@ -9,18 +9,28 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatNis } from "@/lib/formatMoney";
 
 type Row = { label: string; netNis: number; cumulative: number };
 
+/** Recharts takes raw SVG paint values, so theme it through the same CSS tokens as the page. */
+const TICK = { fontSize: 11, fill: "var(--fp-secondary)" };
+const AXIS_LINE = {
+  stroke: "color-mix(in srgb, var(--fp-wood-mid) 60%, transparent)",
+};
+const GRID_STROKE = "color-mix(in srgb, var(--fp-wood-mid) 35%, transparent)";
+const LINE_STROKE = "var(--fp-moss-ink)";
+
 function valueToneClass(n: number): string {
-  if (n < 0) return "text-[var(--fp-loss)]";
-  if (n > 0) return "text-[var(--fp-moss)]";
+  if (n < 0) return "text-[var(--fp-loss-ink)]";
+  if (n > 0) return "text-[var(--fp-moss-ink)]";
   return "text-[var(--fp-ink)]";
 }
 
 export function CareerChart({ data }: { data: Row[] }) {
   const t = useTranslations("career");
+  const locale = useLocale();
 
   if (data.length === 0) return null;
 
@@ -29,10 +39,11 @@ export function CareerChart({ data }: { data: Row[] }) {
       <p className="mb-2 text-center text-sm font-medium">{t("chartTitle")}</p>
       <ResponsiveContainer width="100%" height="85%">
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
-          <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+          <XAxis dataKey="label" tick={TICK} axisLine={AXIS_LINE} tickLine={AXIS_LINE} />
+          <YAxis tick={TICK} axisLine={AXIS_LINE} tickLine={AXIS_LINE} />
           <Tooltip
+            cursor={{ stroke: GRID_STROKE }}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const raw = payload[0].value;
@@ -54,7 +65,7 @@ export function CareerChart({ data }: { data: Row[] }) {
                     className={`text-base font-semibold tabular-nums ${valueToneClass(safe)}`}
                     dir="ltr"
                   >
-                    ₪{safe}
+                    {formatNis(locale, safe)}
                   </p>
                 </div>
               );
@@ -63,9 +74,9 @@ export function CareerChart({ data }: { data: Row[] }) {
           <Line
             type="monotone"
             dataKey="cumulative"
-            stroke="var(--fp-felt)"
+            stroke={LINE_STROKE}
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={{ r: 3, fill: "var(--fp-panel)", stroke: LINE_STROKE, strokeWidth: 2 }}
           />
         </LineChart>
       </ResponsiveContainer>

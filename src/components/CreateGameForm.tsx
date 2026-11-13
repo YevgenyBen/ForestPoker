@@ -26,7 +26,7 @@ export function CreateGameForm({ defaultLocation = "" }: Props) {
           {t("create")}
         </button>
       ) : (
-        <form action={createGame} className="flex flex-col gap-3">
+        <form action={createGame} className="fp-enter flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-[var(--fp-ink)]">{t("create")}</h2>
             <button
@@ -35,7 +35,7 @@ export function CreateGameForm({ defaultLocation = "" }: Props) {
                 setExpanded(false);
                 setDateStr("");
               }}
-              className="text-sm font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-4 hover:brightness-110"
+              className="text-sm font-medium text-[var(--fp-brass-ink)] underline decoration-[var(--fp-brass-ink)]/70 underline-offset-4 hover:brightness-110"
             >
               {tCommon("cancel")}
             </button>
