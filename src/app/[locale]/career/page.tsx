@@ -6,6 +6,7 @@ import { getViewer } from "@/lib/auth/session";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { CareerChart } from "@/components/CareerChart";
 import { formatDateDdMmYyyy } from "@/lib/formatDate";
+import { localizeGameTitle } from "@/lib/gameTitle";
 
 export default async function CareerPage({
   params,
@@ -18,6 +19,7 @@ export default async function CareerPage({
   if (v.kind === "needs_onboarding") redirect(`/${locale}/onboarding`);
 
   const t = await getTranslations("career");
+  const tGames = await getTranslations("games");
   const { lifetimeNis, rows } = await getCareerSummary();
 
   const money = (n: number) =>
@@ -85,7 +87,7 @@ export default async function CareerPage({
                   className="flex items-center justify-between rounded-xl border border-[var(--fp-wood-mid)]/25 bg-[var(--fp-panel)] px-4 py-3"
                 >
                   <span className="font-medium" dir="auto">
-                    {r.title}
+                    {localizeGameTitle(r.title, (parts) => tGames("gameTitle", parts))}
                   </span>
                   <span className="flex flex-col items-end gap-0.5">
                     <span

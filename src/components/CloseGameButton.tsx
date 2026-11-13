@@ -32,8 +32,12 @@ export function CloseGameButton({ gameId, disabled }: Props) {
         setError(t("alreadyClosed"));
         return false;
       }
+      if (res.error === "not_member") {
+        setError(t("notMember"));
+        return false;
+      }
       if (res.error) {
-        setError(res.error);
+        setError(t("actionFailed"));
         return false;
       }
       return true;
@@ -51,7 +55,7 @@ export function CloseGameButton({ gameId, disabled }: Props) {
         {pending && <Spinner className="size-4" />}
         {pending ? tCommon("loading") : t("closeGame")}
       </button>
-      {error && <p className="text-sm text-[var(--fp-loss)]">{error}</p>}
+      {error && <p className="text-sm text-[var(--fp-loss)]" role="alert">{error}</p>}
       <ConfirmDialog
         open={confirming}
         message={t("closeConfirm")}

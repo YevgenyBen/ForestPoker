@@ -1,9 +1,20 @@
+import type { Metadata } from "next";
+import { Rubik } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, setRequestLocale } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
-import { HtmlLang } from "@/components/HtmlLang";
 import { BottomNav } from "@/components/BottomNav";
+
+const rubik = Rubik({
+  subsets: ["latin", "hebrew"],
+  variable: "--font-ui",
+  display: "swap",
+});
 
 type Props = {
   children: React.ReactNode;
@@ -12,6 +23,17 @@ type Props = {
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: Pick<Props, "params">): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
 }
 
 export default async function LocaleLayout({ children, params }: Props) {
@@ -23,12 +45,20 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider messages={messages}>
-      <HtmlLang />
-      <div className="mx-auto flex min-h-dvh max-w-lg flex-col pb-24 pt-4 px-4">
-        {children}
-      </div>
-      <BottomNav />
-    </NextIntlClientProvider>
+    <html
+      suppressHydrationWarning
+      lang={locale}
+      dir={locale === "he" ? "rtl" : "ltr"}
+      className={rubik.variable}
+    >
+      <body className="min-h-dvh bg-[var(--fp-bg)] text-[var(--fp-ink)] antialiased">
+        <NextIntlClientProvider messages={messages}>
+          <div className="mx-auto flex min-h-dvh max-w-lg flex-col pb-24 pt-4 px-4">
+            {children}
+          </div>
+          <BottomNav />
+        </NextIntlClientProvider>
+      </body>
+    </html>
   );
 }

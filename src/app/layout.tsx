@@ -1,28 +1,14 @@
-import type { Metadata } from "next";
-import { Rubik } from "next/font/google";
 import "./globals.css";
 
-const rubik = Rubik({
-  subsets: ["latin", "hebrew"],
-  variable: "--font-ui",
-  display: "swap",
-});
-
-export const metadata: Metadata = {
-  title: "Forest Poker",
-  description: "Buy-in / buy-out tracker for home games",
-};
-
+/**
+ * Pass-through root layout. `<html>`/`<body>` are rendered by `app/[locale]/layout.tsx`
+ * so `lang` and `dir` come from the URL locale in the server HTML. This layout only
+ * exists because `app/page.tsx` (the `/` redirect) needs one.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html suppressHydrationWarning className={rubik.variable}>
-      <body className="min-h-dvh bg-[var(--fp-bg)] text-[var(--fp-ink)] antialiased">
-        {children}
-      </body>
-    </html>
-  );
+  return children;
 }

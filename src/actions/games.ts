@@ -33,16 +33,20 @@ import { safeConsoleError } from "@/lib/logSafeError";
 import { bumpSyncVersion } from "@/lib/sync/bump";
 import { latestLiveEntry, liveLedgerEntries } from "@/lib/ledger";
 import { formatDateDdMmYyyy, parseScheduledCalendarDate } from "@/lib/formatDate";
+import { formatStoredGameTitle } from "@/lib/gameTitle";
 
 const amountSchema = z.coerce.number().int().positive();
 
 const notesSchema = z.string().max(500).optional();
 const gameLocationSchema = z.string().max(500).optional();
 
-/** Next game serial = existing row count + 1; title `Game {n} - dd/mm/yyyy` (Israel date). */
+/**
+ * Next game serial = existing row count + 1; stored title `Game {n} - dd/mm/yyyy` (Israel date).
+ * Display code localizes it via `localizeGameTitle`.
+ */
 function nextGameTitle(existingCount: number, at = new Date()) {
   const serial = existingCount + 1;
-  return `Game ${serial} - ${formatDateDdMmYyyy(at)}`;
+  return formatStoredGameTitle(serial, formatDateDdMmYyyy(at));
 }
 
 async function requireUser() {

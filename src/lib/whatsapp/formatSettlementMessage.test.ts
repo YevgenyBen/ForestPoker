@@ -21,7 +21,7 @@ describe("formatSettlementMessage", () => {
     expect(strip(msg)).toBe(
       [
         "🃏 Forest Poker",
-        "Game 14 - 12/11/2026",
+        "משחק 14 - 12/11/2026",
         "",
         "התחשבנות:",
         "ITZIK_A ← טלסקורי: 130 ₪",
