@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { setGameRsvp } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
@@ -17,11 +18,17 @@ export function GameRsvpPanel({
   const t = useTranslations("games");
   const tCommon = useTranslations("common");
   const { pending, run } = useActionRefresh();
+  const [error, setError] = useState<string | null>(null);
 
   async function pick(status: Rsvp) {
+    setError(null);
     await run(async () => {
       const r = await setGameRsvp(gameId, status);
-      return "ok" in r;
+      if ("error" in r) {
+        setError(r.error === "bad_state" ? t("rsvpClosed") : t("actionFailed"));
+        return false;
+      }
+      return true;
     });
   }
 
@@ -66,6 +73,11 @@ export function GameRsvpPanel({
         <p className="mt-2 inline-flex items-center gap-2 text-sm text-[var(--fp-secondary)]">
           <Spinner className="size-4 text-[var(--fp-moss)]" />
           {tCommon("loading")}
+        </p>
+      )}
+      {error && (
+        <p className="mt-2 text-sm text-[var(--fp-loss)]" role="alert">
+          {error}
         </p>
       )}
     </section>

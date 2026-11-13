@@ -108,6 +108,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [navigatingAway, setNavigatingAway] = useState(false);
   const [embeddedPreview, setEmbeddedPreview] = useState(false);
@@ -234,6 +235,7 @@ export function LoginForm() {
     e.preventDefault();
     flushSync(() => {
       setError(null);
+      setNotice(null);
       setPendingAction("email");
     });
     try {
@@ -255,6 +257,7 @@ export function LoginForm() {
     if (embeddedPreview) return;
     flushSync(() => {
       setError(null);
+      setNotice(null);
       setPendingAction("google");
     });
     try {
@@ -302,13 +305,15 @@ export function LoginForm() {
     navigatingAway || pendingAction === "email" || pendingAction === "session";
 
   async function handleForgot() {
+    setNotice(null);
     if (!email) {
-      setError(t("errors.generic"));
+      setError(t("errors.enterEmailFirst"));
       return;
     }
+    setError(null);
     try {
       await sendPasswordResetEmail(getFirebaseAuth(), email);
-      alert("Check your email for reset instructions.");
+      setNotice(t("resetSent"));
     } catch (e) {
       safeConsoleError("LoginForm:forgotPassword", e);
       setError(t("errors.generic"));
@@ -356,7 +361,7 @@ export function LoginForm() {
       </button>
 
       <div className="relative text-center text-xs text-[var(--fp-secondary)]">
-        <span className="bg-[var(--fp-panel)] px-2">or email</span>
+        <span className="bg-[var(--fp-panel)] px-2">{t("orEmail")}</span>
         <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-[var(--fp-parchment)]" />
       </div>
 
@@ -394,6 +399,14 @@ export function LoginForm() {
             role="alert"
           >
             {error}
+          </p>
+        )}
+        {notice && (
+          <p
+            className="rounded-lg border border-[var(--fp-moss)]/40 bg-[var(--fp-moss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-ink)]"
+            role="status"
+          >
+            {notice}
           </p>
         )}
         <button

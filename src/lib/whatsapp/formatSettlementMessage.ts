@@ -1,3 +1,5 @@
+import { localizeGameTitle } from "@/lib/gameTitle";
+
 export type SettlementLine = {
   fromName: string;
   toName: string;
@@ -34,7 +36,7 @@ const money = (n: number) =>
   }).format(n);
 
 export function formatSettlementMessage(input: SettlementMessageInput): string {
-  const lines: string[] = [iso("🃏 Forest Poker"), iso(input.title), "", "התחשבנות:"];
+  const lines: string[] = [iso("🃏 Forest Poker"), iso(localizeGameTitle(input.title, ({ serial, date }) => `משחק ${serial} - ${date}`)), "", "התחשבנות:"];
 
   if (input.transfers.length === 0) {
     lines.push("אין התחשבנות — כולם מאוזנים");

@@ -14,6 +14,7 @@ import { DeleteGameButton } from "@/components/DeleteGameButton";
 import { CreateGameForm } from "@/components/CreateGameForm";
 import { DbSync } from "@/components/DbSync";
 import { LocationWazeLink } from "@/components/LocationWazeLink";
+import { localizeGameTitle } from "@/lib/gameTitle";
 import {
   formatDateDdMmYyyy,
   formatDateTimeDdMmYyyyHm,
@@ -30,7 +31,7 @@ function GameRow({
   locale: string;
   showCancelScheduled: boolean;
   showGameDelete: boolean;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }) {
   const rowClass =
     g.status === "scheduled"
@@ -65,7 +66,7 @@ function GameRow({
               className="min-w-0 flex-1 font-medium text-[var(--fp-ink)] after:absolute after:inset-0 after:content-['']"
               dir="auto"
             >
-              {g.title}
+              {localizeGameTitle(g.title, (parts) => t("gameTitle", parts))}
             </Link>
             {g.status !== "scheduled" && (
               <span className="flex shrink-0 items-center gap-2 text-sm">

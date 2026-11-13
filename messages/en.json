@@ -24,6 +24,8 @@
     "forgot": "Forgot password?",
     "needAccount": "Need an account? Register",
     "haveAccount": "Already have an account? Sign in",
+    "orEmail": "or email",
+    "resetSent": "Check your email for reset instructions.",
     "errors": {
       "generic": "Something went wrong. Try again.",
       "unauthorizedDomain": "This domain is not allowed for Firebase sign-in. In Firebase Console → Authentication → Settings → Authorized domains, add your App Hosting hostname (the …hosted.app URL, no :8080 port).",
@@ -36,12 +38,13 @@
       "tooManyRequests": "Too many attempts. Wait a moment and try again.",
       "network": "Network error. Check your connection and try again.",
       "popupBlocked": "Your browser blocked the Google pop-up. Allow pop-ups for this site and try again.",
-      "popupClosed": "Google sign-in was cancelled or the window closed before finishing."
+      "popupClosed": "Google sign-in was cancelled or the window closed before finishing.",
+      "enterEmailFirst": "Enter your email above first, then tap \"Forgot password?\"."
     }
   },
   "onboarding": {
     "title": "Pick a username",
-    "subtitle": "Shown on games and ledgers. Lowercase letters, numbers, underscore.",
+    "subtitle": "Shown on games and ledgers. Letters, numbers, and underscore.",
     "username": "Username",
     "submit": "Continue",
     "taken": "That username is taken.",
@@ -65,6 +68,7 @@
   },
   "games": {
     "title": "Games",
+    "gameTitle": "Game {serial} - {date}",
     "create": "New game",
     "submitCreate": "Schedule game",
     "scheduledStart": "Date",
@@ -85,7 +89,8 @@
     "locationShort": "Where",
     "openInWaze": "Open in Waze",
     "openTable": "Open table",
-    "ledgerWhenOpen": "Ledger unlocks after you open the table.",
+    "openGameForbidden": "Only the host can open the table.",
+    "openGameBadState": "This game can’t be opened (it’s no longer scheduled).",
     "rsvpYourPick": "Your RSVP",
     "rsvpCall": "Call",
     "rsvpCheck": "Check",
@@ -95,18 +100,17 @@
     "rsvpMaybeList": "Maybe",
     "rsvpNotList": "Not coming",
     "rsvpEmptyColumn": "—",
+    "rsvpClosed": "RSVPs are closed — this game is no longer scheduled.",
     "join": "Join",
-    "joined": "In game",
     "members": "Players",
     "playerNames": "Names",
     "bank": "Bank",
     "bankAria": "Cash still in play",
-    "ledger": "Ledger",
-    "ledgerEmpty": "Place your bets",
     "buyIn": "Buy in",
     "buyOut": "Buy out",
     "ledgerBuyOut": "Buy out",
     "amountNis": "Amount (₪)",
+    "invalidAmount": "Enter a whole amount of at least ₪1.",
     "addEntry": "Add entry",
     "lastEntry": "Last entry",
     "undo": "Undo",
@@ -122,11 +126,12 @@
     "deleteGameConfirmAction": "Delete permanently",
     "cancelGameConfirmAction": "Cancel game",
     "settlements": "Settlements",
-    "to": "To",
     "closedBy": "Closed by",
     "nonMemberHint": "Join the game to add buy-ins or close.",
     "balanceError": "Cannot close: net totals must sum to zero.",
     "alreadyClosed": "This game is already closed.",
+    "notMember": "Join the game first.",
+    "actionFailed": "Something went wrong. Try again.",
     "deleteGameShort": "Delete",
     "deleteGame": "Delete game permanently",
     "deleteGameConfirm": "Permanently delete this game and all players, ledger rows, and settlements? This cannot be undone.",
@@ -135,7 +140,6 @@
     "deleteGameNotFound": "Game no longer exists.",
     "deleteGameFailed": "Could not delete the game. Try again.",
     "cancelGameShort": "Cancel",
-    "cancelGame": "Cancel",
     "cancelGameConfirm": "Cancel this scheduled game and remove it for everyone? This cannot be undone.",
     "cancelGameForbidden": "Only the host can cancel this game.",
     "cancelGameNotFound": "Game no longer exists.",
@@ -147,7 +151,6 @@
     "subtitle": "Games you played",
     "lifetime": "Lifetime",
     "empty": "No completed games with you yet.",
-    "net": "Your net",
     "chartTitle": "Net per closed game"
   },
   "league": {
@@ -157,7 +160,7 @@
     "rank": "#",
     "player": "Player",
     "total": "Total",
-    "gamesPlayed": "Played {played} out of {total} games",
+    "gamesPlayed": "Played {played} out of {total, plural, one {# game} other {# games}}",
     "empty": "No closed games yet — standings will show once games finish.",
     "inactiveTitle": "Inactive players ({count})",
     "allInactive": "No active players right now — everyone is listed under inactive players below.",
@@ -165,8 +168,19 @@
   },
   "common": {
     "loading": "Loading…",
-    "save": "Save",
     "cancel": "Cancel",
-    "currency": "₪"
+    "close": "Close"
+  },
+  "easterEgg": {
+    "title": "Poker easter egg",
+    "openLabel": "Open a poker quote",
+    "quotes": [
+      "If there weren't luck involved, I would win every time. — Phil Hellmuth",
+      "In the long run, there is no luck in poker. But the short run is longer than most people know. — Rick Bennet",
+      "Poker is a hard way to make an easy living. — Doyle Brunson",
+      "A chip and a chair. — Jack Straus",
+      "Why did the poker player bring sunscreen? To avoid getting burned on the river.",
+      "I never bluff. I just tell stories with confidence."
+    ]
   }
 }

@@ -20,6 +20,7 @@ import {
   formatDateTimeDdMmYyyyHm,
   formatTimeHm,
 } from "@/lib/formatDate";
+import { localizeGameTitle } from "@/lib/gameTitle";
 
 export default async function GameDetailPage({
   params,
@@ -73,10 +74,10 @@ export default async function GameDetailPage({
             href={`/${locale}/games`}
             className="text-sm font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
           >
-            ← {t("title")}
+            {locale === "he" ? "→" : "←"} {t("title")}
           </Link>
           <h1 className="mt-2 text-2xl font-bold text-[var(--fp-ink)]" dir="auto">
-            {game.title}
+            {localizeGameTitle(game.title, (parts) => t("gameTitle", parts))}
           </h1>
           <p className="text-sm text-[var(--fp-secondary)]">
             {game.status === "scheduled"

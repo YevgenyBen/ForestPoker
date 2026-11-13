@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { openGame } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
@@ -9,15 +10,24 @@ export function OpenGameButton({ gameId }: { gameId: string }) {
   const t = useTranslations("games");
   const tCommon = useTranslations("common");
   const { pending, run } = useActionRefresh();
+  const [error, setError] = useState<string | null>(null);
 
   async function handle() {
+    setError(null);
     await run(async () => {
       const r = await openGame(gameId);
-      return "ok" in r;
+      if ("error" in r) {
+        setError(
+          r.error === "forbidden" ? t("openGameForbidden") : t("openGameBadState")
+        );
+        return false;
+      }
+      return true;
     });
   }
 
   return (
+    <div className="flex flex-col gap-2">
     <button
       type="button"
       onClick={() => void handle()}
@@ -27,5 +37,7 @@ export function OpenGameButton({ gameId }: { gameId: string }) {
       {pending && <Spinner className="size-4 text-white" />}
       {pending ? tCommon("loading") : t("openTable")}
     </button>
+    {error && <p className="text-sm text-[var(--fp-loss)]" role="alert">{error}</p>}
+    </div>
   );
 }

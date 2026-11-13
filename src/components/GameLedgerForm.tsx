@@ -79,7 +79,7 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
     setError(null);
     const n = parseInt(amount, 10);
     if (!Number.isFinite(n) || n < 1) {
-      setError("invalid");
+      setError(t("invalidAmount"));
       return;
     }
     await run(async () => {
@@ -89,7 +89,15 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
         amountNis: n,
       });
       if (res.error) {
-        setError(res.error);
+        setError(
+          res.error === "invalid_amount"
+            ? t("invalidAmount")
+            : res.error === "not_member"
+              ? t("notMember")
+              : res.error === "closed"
+                ? t("alreadyClosed")
+                : t("actionFailed")
+        );
         return false;
       }
       setAmount("");
@@ -105,6 +113,7 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
       // On stale or closed, still refresh so the player sees the current state.
       if (res.error === "stale") setError(t("undoStale"));
       else if (res.error === "closed") setError(t("alreadyClosed"));
+      else if (res.error) setError(t("actionFailed"));
       return true;
     });
   }
@@ -159,7 +168,7 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
         />
       </div>
       {error && (
-        <p className="rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-loss)]">
+        <p role="alert" className="rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-loss)]">
           {error}
         </p>
       )}

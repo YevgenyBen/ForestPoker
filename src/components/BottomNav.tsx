@@ -19,25 +19,19 @@ function navAppLinkDisabledClass(): string {
   return `flex min-h-11 min-w-0 flex-1 cursor-not-allowed items-center justify-center rounded-lg p-3 text-center text-sm font-medium text-[var(--fp-secondary)] opacity-40`;
 }
 
-const pokerEasterEggs = [
-  "If there weren't luck involved, I would win every time. - Phil Hellmuth",
-  "In the long run, there is no luck in poker. But the short run is longer than most people know. - Rick Bennet",
-  "Poker is a hard way to make an easy living. - Doyle Brunson",
-  "A chip and a chair. - Jack Straus",
-  "Why did the poker player bring sunscreen? To avoid getting burned on the river.",
-  "I never bluff. I just tell stories with confidence.",
-] as const;
-
 export function BottomNav() {
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
+  const tEgg = useTranslations("easterEgg");
+  const quotes = tEgg.raw("quotes") as string[];
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
   const base = `/${locale}`;
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [easterEgg, setEasterEgg] = useState<string | null>(null);
+  /** Index into `easterEgg.quotes`, so the quote follows a locale switch. */
+  const [easterEgg, setEasterEgg] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,8 +63,7 @@ export function BottomNav() {
   }
 
   function openEasterEgg() {
-    const idx = Math.floor(Math.random() * pokerEasterEggs.length);
-    setEasterEgg(pokerEasterEggs[idx] ?? pokerEasterEggs[0]);
+    setEasterEgg(Math.floor(Math.random() * quotes.length));
   }
 
   const loginHref = `${base}/login`;
@@ -142,39 +135,39 @@ export function BottomNav() {
             type="button"
             onClick={openEasterEgg}
             className="rounded px-1 transition hover:bg-[var(--fp-parchment)]/60 hover:text-[var(--fp-ink)]"
-            aria-label="Open poker quote"
-            title="Poker quote"
+            aria-label={tEgg("openLabel")}
+            title={tEgg("openLabel")}
           >
             v{appVersion}
           </button>
         </div>
       ) : null}
     </nav>
-    {easterEgg
+    {easterEgg !== null
       ? createPortal(
           <div
             className="fixed inset-0 z-[100] flex min-h-[100dvh] w-full items-center justify-center bg-black/60 px-4"
             onClick={() => setEasterEgg(null)}
             role="dialog"
             aria-modal="true"
-            aria-label="Poker easter egg"
+            aria-label={tEgg("title")}
           >
             <div
               className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-[var(--fp-wood-mid)]/40 bg-[var(--fp-panel)] p-4 text-center shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="w-full text-sm font-semibold text-[var(--fp-brass)]">
-                Poker easter egg
+                {tEgg("title")}
               </p>
               <p className="w-full text-sm leading-relaxed text-[var(--fp-ink)]" dir="auto">
-                {easterEgg}
+                {quotes[easterEgg] ?? quotes[0]}
               </p>
               <button
                 type="button"
                 onClick={() => setEasterEgg(null)}
                 className="min-h-10 w-full max-w-full rounded-lg bg-[var(--fp-moss)] px-4 text-sm font-semibold text-white"
               >
-                {tCommon("cancel")}
+                {tCommon("close")}
               </button>
             </div>
           </div>,
