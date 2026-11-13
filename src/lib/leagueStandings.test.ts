@@ -46,8 +46,9 @@ describe("league standings", () => {
     });
 
     expect(standings).toEqual({
-      active: [{ userId: "u-alice", username: "alice", lifetimeNetNis: 50 }],
-      inactive: [{ userId: "u-bob", username: "bob", lifetimeNetNis: -170 }],
+      active: [{ userId: "u-alice", username: "alice", lifetimeNetNis: 50, gamesPlayed: 2 }],
+      inactive: [{ userId: "u-bob", username: "bob", lifetimeNetNis: -170, gamesPlayed: 1 }],
+      closedGameCount: 2,
     });
   });
 
@@ -66,9 +67,9 @@ describe("league standings", () => {
     const atHalf = computeLeagueStandings({ ...input, activityThresholdPct: 50 });
     const atThreeQuarters = computeLeagueStandings({ ...input, activityThresholdPct: 75 });
 
-    expect(atHalf.active).toEqual([{ userId: "u-bob", username: "bob", lifetimeNetNis: -120 }]);
+    expect(atHalf.active).toEqual([{ userId: "u-bob", username: "bob", lifetimeNetNis: -120, gamesPlayed: 3 }]);
     expect(atThreeQuarters.inactive).toEqual([
-      { userId: "u-bob", username: "bob", lifetimeNetNis: -120 },
+      { userId: "u-bob", username: "bob", lifetimeNetNis: -120, gamesPlayed: 3 },
     ]);
   });
 
@@ -125,8 +126,9 @@ describe("league standings", () => {
     });
 
     expect(standings).toEqual({
-      active: [{ userId: "u-alice", username: "alice", lifetimeNetNis: 0 }],
+      active: [{ userId: "u-alice", username: "alice", lifetimeNetNis: 0, gamesPlayed: 1 }],
       inactive: [],
+      closedGameCount: 1,
     });
   });
 
@@ -138,7 +140,7 @@ describe("league standings", () => {
       activityThresholdPct: 50,
     });
 
-    expect(inactive).toEqual([{ userId: "u-bob", username: "bob", lifetimeNetNis: -60 }]);
+    expect(inactive).toEqual([{ userId: "u-bob", username: "bob", lifetimeNetNis: -60, gamesPlayed: 1 }]);
   });
 
   it("makes a player who played their only closed game so far an active player", () => {
@@ -236,6 +238,30 @@ describe("league standings", () => {
     expect(names(active)).toEqual(["bob"]);
   });
 
+  it("counts the closed games each player played out of all the league's closed games", () => {
+    const standings = computeLeagueStandings({
+      closedGames: closedGames(5),
+      ledgerEntries: [
+        buyIn("g1", "u-alice"),
+        buyIn("g1", "u-alice"),
+        buyIn("g3", "u-alice"),
+        buyIn("g5", "u-alice"),
+        buyIn("g5", "u-bob"),
+        buyOut("g4", "u-bob", 10),
+        buyIn("g-open", "u-bob"),
+      ],
+      usernames,
+      activityThresholdPct: 50,
+    });
+
+    const played = [...standings.active, ...standings.inactive].map((r) => [r.username, r.gamesPlayed]);
+    expect(played.sort()).toEqual([
+      ["alice", 3],
+      ["bob", 1],
+    ]);
+    expect(standings.closedGameCount).toBe(5);
+  });
+
   it("is empty when there are no closed games", () => {
     expect(
       computeLeagueStandings({
@@ -244,6 +270,6 @@ describe("league standings", () => {
         usernames: new Map(),
         activityThresholdPct: 50,
       })
-    ).toEqual({ active: [], inactive: [] });
+    ).toEqual({ active: [], inactive: [], closedGameCount: 0 });
   });
 });

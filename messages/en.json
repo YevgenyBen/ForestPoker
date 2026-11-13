@@ -157,6 +157,7 @@
     "rank": "#",
     "player": "Player",
     "total": "Total",
+    "gamesPlayed": "Played {played} out of {total} games",
     "empty": "No closed games yet — standings will show once games finish.",
     "inactiveTitle": "Inactive players ({count})",
     "allInactive": "No active players right now — everyone is listed under inactive players below.",

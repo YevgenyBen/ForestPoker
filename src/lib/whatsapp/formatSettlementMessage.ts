@@ -10,9 +10,21 @@ export type SettlementMessageInput = {
   closerName?: string | null;
 };
 
-/** Keep mixed Hebrew/Latin lines in correct visual order in WhatsApp (BiDi). */
-const LRI = "\u2066";
-const PDI = "\u2069";
+/**
+ * BiDi controls so the Hebrew message reads right-to-left in WhatsApp:
+ * - every line starts with RLM, forcing an RTL paragraph (consistent right alignment);
+ * - every user-supplied string (names, title) sits in a first-strong isolate, so a
+ *   Hebrew or Latin name keeps its own direction and never swaps places with its
+ *   neighbours.
+ */
+const RLM = "‏";
+const FSI = "⁨";
+const PDI = "⁩";
+
+const iso = (s: string) => `${FSI}${s}${PDI}`;
+
+/** In an RTL line "payer ← payee" reads right-to-left with the arrow pointing at the payee. */
+const ARROW = "←";
 
 const money = (n: number) =>
   new Intl.NumberFormat("he-IL", {
@@ -22,21 +34,19 @@ const money = (n: number) =>
   }).format(n);
 
 export function formatSettlementMessage(input: SettlementMessageInput): string {
-  const lines: string[] = [`🃏 Forest Poker`, input.title, "", "התחשבנות:"];
+  const lines: string[] = [iso("🃏 Forest Poker"), iso(input.title), "", "התחשבנות:"];
 
   if (input.transfers.length === 0) {
     lines.push("אין התחשבנות — כולם מאוזנים");
   } else {
     for (const t of input.transfers) {
-      lines.push(
-        `${LRI}${t.fromName} → ${t.toName}: ${money(t.amountNis)}${PDI}`
-      );
+      lines.push(`${iso(t.fromName)} ${ARROW} ${iso(t.toName)}: ${money(t.amountNis)}`);
     }
   }
 
   if (input.closerName) {
-    lines.push("", `נסגר על ידי: ${LRI}${input.closerName}${PDI}`);
+    lines.push("", `נסגר על ידי: ${iso(input.closerName)}`);
   }
 
-  return lines.join("\n");
+  return lines.map((line) => (line ? `${RLM}${line}` : line)).join("\n");
 }

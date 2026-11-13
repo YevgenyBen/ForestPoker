@@ -16,12 +16,14 @@ function StandingsTable({
   viewerId,
   money,
   labels,
+  gamesPlayedLabel,
 }: {
   rows: LeagueStandingRow[];
   ranked: boolean;
   viewerId: string | null;
   money: (n: number) => string;
   labels: { rank: string; player: string; total: string };
+  gamesPlayedLabel: (played: number) => string;
 }) {
   return (
     <div
@@ -67,6 +69,12 @@ function StandingsTable({
                   >
                     {ltrAlignText(r.username)}
                   </span>
+                  <span
+                    dir="auto"
+                    className="block w-full text-left text-xs font-normal text-[var(--fp-secondary)]"
+                  >
+                    {gamesPlayedLabel(r.gamesPlayed)}
+                  </span>
                 </td>
                 <td
                   className={`px-4 py-3 text-end tabular-nums ${
@@ -98,7 +106,8 @@ export default async function LeaguePage({
   const viewerId = v.kind === "member" ? v.user.id : null;
 
   const t = await getTranslations("league");
-  const { active, inactive, activityThresholdPct } = await getLeagueStandings();
+  const { active, inactive, closedGameCount, activityThresholdPct } =
+    await getLeagueStandings();
 
   const money = (n: number) =>
     new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-IL", {
@@ -111,6 +120,8 @@ export default async function LeaguePage({
     viewerId,
     money,
     labels: { rank: t("rank"), player: t("player"), total: t("total") },
+    gamesPlayedLabel: (played: number) =>
+      t("gamesPlayed", { played, total: closedGameCount }),
   };
 
   return (

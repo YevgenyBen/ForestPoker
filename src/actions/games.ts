@@ -707,7 +707,7 @@ export async function getLeagueStandings(): Promise<
   ]);
 
   if (closedGames.length === 0) {
-    return { active: [], inactive: [], activityThresholdPct };
+    return { active: [], inactive: [], closedGameCount: 0, activityThresholdPct };
   }
 
   const ledgerRows = await liveLedgerEntries(db, {
