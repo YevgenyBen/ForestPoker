@@ -94,20 +94,21 @@ export function PlayerProfileForm({
           id="profile-location"
           name="location"
           maxLength={500}
+          aria-describedby="profile-location-hint"
           defaultValue={initialLocation}
           disabled={isPending}
           className="fp-field w-full min-h-11 rounded-lg border border-[var(--fp-wood-mid)]/50 px-3 py-2 text-base"
           dir="auto"
           autoComplete="street-address"
         />
-        <p className="mt-1 text-xs text-[var(--fp-secondary)]">
+        <p id="profile-location-hint" className="mt-1 text-xs text-[var(--fp-secondary)]">
           {t("locationHint")}
         </p>
       </div>
 
       {state && "ok" in state && state.ok ? (
         <p
-          className="rounded-lg border border-[var(--fp-win)]/35 bg-[var(--fp-win)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-moss)]"
+          className="rounded-lg border border-[var(--fp-win)]/35 bg-[var(--fp-win)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-moss-ink)]"
           role="status"
         >
           {t("saved")}
@@ -117,7 +118,7 @@ export function PlayerProfileForm({
       {msg ? (
         <p
           id="profile-error"
-          className="rounded-lg border border-[var(--fp-loss)]/35 bg-[var(--fp-loss)]/10 px-3 py-2 text-sm font-medium text-[var(--fp-loss)]"
+          className="rounded-lg border border-[var(--fp-loss)]/35 bg-[var(--fp-loss)]/10 px-3 py-2 text-sm font-medium text-[var(--fp-loss-ink)]"
           role="alert"
         >
           {msg}

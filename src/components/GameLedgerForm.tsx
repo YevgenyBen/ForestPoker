@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { addLedgerEntry, undoLedgerEntry } from "@/actions/games";
 import { useActionRefresh } from "@/hooks/useActionRefresh";
 import { Spinner } from "@/components/Spinner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useFlashOnChange } from "@/hooks/useFlashOnChange";
 
 /** The viewer's most recent entry that can still be undone, preformatted for display. */
 type LastEntry = {
@@ -73,6 +74,9 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
   const [confirmingUndo, setConfirmingUndo] = useState<LastEntry | null>(null);
 
   const isBuyIn = kind === "buy_in";
+  /** The recorded-entry line rises in and flashes each time a new entry lands. */
+  const lastEntryRef = useRef<HTMLDivElement>(null);
+  useFlashOnChange(lastEntryRef, lastEntry?.id ?? null, ["fp-flash", "fp-enter"]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -128,10 +132,11 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
           type="button"
           onClick={() => setKind("buy_in")}
           disabled={pending}
+          aria-pressed={isBuyIn}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
             isBuyIn
               ? "bg-[var(--fp-loss)] text-white shadow-sm"
-              : "border border-[var(--fp-loss)]/30 bg-[var(--fp-loss)]/8 text-[var(--fp-loss)]"
+              : "border border-[var(--fp-loss)]/30 bg-[var(--fp-loss)]/8 text-[var(--fp-loss-ink)]"
           }`}
         >
           <BuyInIcon className="size-5 shrink-0" />
@@ -141,10 +146,11 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
           type="button"
           onClick={() => setKind("buy_out")}
           disabled={pending}
+          aria-pressed={!isBuyIn}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
             !isBuyIn
               ? "bg-[var(--fp-win)] text-white shadow-sm"
-              : "border border-[var(--fp-win)]/35 bg-[var(--fp-win)]/10 text-[var(--fp-win)]"
+              : "border border-[var(--fp-win)]/35 bg-[var(--fp-win)]/10 text-[var(--fp-win-ink)]"
           }`}
         >
           <BuyOutIcon className="size-5 shrink-0" />
@@ -152,23 +158,30 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
         </button>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-[var(--fp-ink)]">
+        <label
+          htmlFor={`ledger-amount-${gameId}`}
+          className="mb-1 block text-xs font-medium text-[var(--fp-ink)]"
+        >
           {t("amountNis")}
         </label>
         <input
+          id={`ledger-amount-${gameId}`}
           type="number"
+          inputMode="numeric"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `ledger-error-${gameId}` : undefined}
           min={1}
           step={1}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           required
           disabled={pending}
-          className="fp-field w-full rounded-lg border border-[var(--fp-wood-mid)]/40 px-3 py-2"
+          className="fp-field min-h-11 w-full rounded-lg border border-[var(--fp-wood-mid)]/40 px-3 py-2"
           dir="ltr"
         />
       </div>
       {error && (
-        <p role="alert" className="rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-loss)]">
+        <p id={`ledger-error-${gameId}`} role="alert"className="rounded-lg border border-[var(--fp-loss)]/40 bg-[var(--fp-loss)]/12 px-3 py-2 text-sm font-medium text-[var(--fp-loss-ink)]">
           {error}
         </p>
       )}
@@ -183,7 +196,10 @@ export function GameLedgerForm({ gameId, lastEntry }: Props) {
         {pending ? tCommon("loading") : t("addEntry")}
       </button>
       {lastEntry && (
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--fp-wood-mid)]/20 pt-3 text-sm">
+        <div
+          ref={lastEntryRef}
+          className="-mx-2 flex items-center justify-between gap-3 border-t border-[var(--fp-wood-mid)]/20 px-2 pt-3 pb-1 text-sm"
+        >
           <p className="min-w-0 text-[var(--fp-secondary)]">
             {t("lastEntry")}:{" "}
             <span className="font-semibold text-[var(--fp-ink)]">

@@ -15,7 +15,7 @@ function Overlay({ children }: { children: React.ReactNode }) {
           aria-busy="true"
           aria-live="polite"
         >
-          <Spinner className="size-8 text-[var(--fp-moss)]" />
+          <Spinner className="size-8 text-[var(--fp-moss-ink)]" />
         </div>
       )}
     </div>

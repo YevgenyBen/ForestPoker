@@ -62,7 +62,7 @@ export function OnboardingForm() {
       {msg && (
         <p
           id="username-error"
-          className="rounded-lg border border-[var(--fp-loss)]/35 bg-[var(--fp-loss)]/10 px-3 py-2 text-sm font-medium text-[var(--fp-loss)]"
+          className="rounded-lg border border-[var(--fp-loss)]/35 bg-[var(--fp-loss)]/10 px-3 py-2 text-sm font-medium text-[var(--fp-loss-ink)]"
           role="alert"
         >
           {msg}

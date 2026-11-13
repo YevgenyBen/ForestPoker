@@ -17,7 +17,7 @@ export function LocationWazeLink({
   address,
   emptyDisplay = "—",
   openInWazeLabel,
-  className = "font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[3px] break-words hover:brightness-110",
+  className = "font-medium text-[var(--fp-brass-ink)] underline decoration-[var(--fp-brass-ink)]/70 underline-offset-[3px] break-words hover:brightness-110",
 }: Props) {
   const href = wazeUrlForAddress(address);
   const text = address.trim();

@@ -47,6 +47,7 @@ export function GameRsvpPanel({
         <button
           type="button"
           className={btnClass(myRsvp === "yes")}
+          aria-pressed={myRsvp === "yes"}
           disabled={pending}
           onClick={() => void pick("yes")}
         >
@@ -55,6 +56,7 @@ export function GameRsvpPanel({
         <button
           type="button"
           className={btnClass(myRsvp === "maybe")}
+          aria-pressed={myRsvp === "maybe"}
           disabled={pending}
           onClick={() => void pick("maybe")}
         >
@@ -63,6 +65,7 @@ export function GameRsvpPanel({
         <button
           type="button"
           className={btnClass(myRsvp === "no")}
+          aria-pressed={myRsvp === "no"}
           disabled={pending}
           onClick={() => void pick("no")}
         >
@@ -71,12 +74,12 @@ export function GameRsvpPanel({
       </div>
       {pending && (
         <p className="mt-2 inline-flex items-center gap-2 text-sm text-[var(--fp-secondary)]">
-          <Spinner className="size-4 text-[var(--fp-moss)]" />
+          <Spinner className="size-4 text-[var(--fp-moss-ink)]" />
           {tCommon("loading")}
         </p>
       )}
       {error && (
-        <p className="mt-2 text-sm text-[var(--fp-loss)]" role="alert">
+        <p className="mt-2 text-sm text-[var(--fp-loss-ink)]" role="alert">
           {error}
         </p>
       )}

@@ -37,7 +37,7 @@ export function JoinGameButton({ gameId }: Props) {
       {pending && <Spinner className="size-4 text-white" />}
       {pending ? tCommon("loading") : t("join")}
     </button>
-    {error && <p className="text-sm text-[var(--fp-loss)]" role="alert">{error}</p>}
+    {error && <p className="text-sm text-[var(--fp-loss-ink)]" role="alert">{error}</p>}
     </div>
   );
 }

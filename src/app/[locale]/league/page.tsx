@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { formatNis } from "@/lib/formatMoney";
 import { getLeagueStandings } from "@/actions/games";
 import { getViewer } from "@/lib/auth/session";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -78,7 +79,7 @@ function StandingsTable({
                 </td>
                 <td
                   className={`px-4 py-3 text-end tabular-nums ${
-                    positive ? "text-[var(--fp-win)]" : "text-[var(--fp-loss)]"
+                    positive ? "text-[var(--fp-win-ink)]" : "text-[var(--fp-loss-ink)]"
                   }`}
                   dir="ltr"
                 >
@@ -109,12 +110,7 @@ export default async function LeaguePage({
   const { active, inactive, closedGameCount, activityThresholdPct } =
     await getLeagueStandings();
 
-  const money = (n: number) =>
-    new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-IL", {
-      style: "currency",
-      currency: "ILS",
-      maximumFractionDigits: 0,
-    }).format(n);
+  const money = (n: number) => formatNis(locale, n);
 
   const tableProps = {
     viewerId,
@@ -153,8 +149,8 @@ export default async function LeaguePage({
           )}
 
           {inactive.length > 0 && (
-            <details>
-              <summary className="cursor-pointer select-none text-sm font-semibold text-[var(--fp-secondary)] hover:text-[var(--fp-ink)]">
+            <details className="fp-disclosure">
+              <summary className="cursor-pointer select-none py-3 text-sm font-semibold text-[var(--fp-secondary)] hover:text-[var(--fp-ink)]">
                 {t("inactiveTitle", { count: inactive.length })}
               </summary>
               <div className="mt-3">
@@ -168,7 +164,7 @@ export default async function LeaguePage({
       <p className="text-center text-sm text-[var(--fp-secondary)]">
         <Link
           href={`/${locale}/career`}
-          className="font-medium text-[var(--fp-brass)] underline decoration-[var(--fp-brass)]/70 underline-offset-[5px] hover:brightness-110"
+          className="fp-tap font-medium text-[var(--fp-brass-ink)] underline decoration-[var(--fp-brass-ink)]/70 underline-offset-[5px] hover:brightness-110"
         >
           {t("careerLink")}
         </Link>

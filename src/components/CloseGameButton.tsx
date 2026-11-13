@@ -50,12 +50,12 @@ export function CloseGameButton({ gameId, disabled }: Props) {
         type="button"
         onClick={() => setConfirming(true)}
         disabled={disabled || pending}
-        className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--fp-loss)] bg-transparent font-semibold text-[var(--fp-loss)] disabled:opacity-50"
+        className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--fp-loss-ink)] bg-transparent font-semibold text-[var(--fp-loss-ink)] disabled:opacity-50"
       >
         {pending && <Spinner className="size-4" />}
         {pending ? tCommon("loading") : t("closeGame")}
       </button>
-      {error && <p className="text-sm text-[var(--fp-loss)]" role="alert">{error}</p>}
+      {error && <p className="text-sm text-[var(--fp-loss-ink)]" role="alert">{error}</p>}
       <ConfirmDialog
         open={confirming}
         message={t("closeConfirm")}
