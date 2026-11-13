@@ -17,11 +17,15 @@ export type LeagueStandingRow = {
   userId: string;
   username: string;
   lifetimeNetNis: number;
+  /** Closed games this player bought into. */
+  gamesPlayed: number;
 };
 
 export type LeagueStandings = {
   active: LeagueStandingRow[];
   inactive: LeagueStandingRow[];
+  /** Every closed game in the league, the denominator for `gamesPlayed`. */
+  closedGameCount: number;
 };
 
 /**
@@ -49,7 +53,11 @@ export function computeLeagueStandings(input: {
     playedPositions.set(e.userId, played);
   }
 
-  const standings: LeagueStandings = { active: [], inactive: [] };
+  const standings: LeagueStandings = {
+    active: [],
+    inactive: [],
+    closedGameCount: positionByGameId.size,
+  };
   for (const [userId, played] of playedPositions) {
     const eligibleGameCount = positionByGameId.size - Math.min(...played);
     const isActive =
@@ -58,6 +66,7 @@ export function computeLeagueStandings(input: {
       userId,
       username: input.usernames.get(userId) ?? userId,
       lifetimeNetNis: net.get(userId) ?? 0,
+      gamesPlayed: played.size,
     });
   }
   standings.active.sort(byLifetimeNetThenName);
